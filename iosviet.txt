@@ -1,0 +1,137 @@
+
+local P=game:GetService("Players")
+local UIS=game:GetService("UserInputService")
+local RS=game:GetService("RunService")
+local plr=P.LocalPlayer
+
+-- UI
+local gui=Instance.new("ScreenGui",plr.PlayerGui); gui.Name="iosviet"
+local f=Instance.new("Frame",gui)
+f.Size=UDim2.fromOffset(260,300)
+f.Position=UDim2.fromScale(.05,.2)
+f.BackgroundColor3=Color3.fromRGB(25,25,25)
+f.Active=true; f.Draggable=true
+local t=Instance.new("TextLabel",f)
+t.Size=UDim2.fromOffset(260,36)
+t.Text="iosviet"; t.TextColor3=Color3.new(1,1,1)
+t.BackgroundColor3=Color3.fromRGB(0,120,255)
+
+local mini=false
+t.InputBegan:Connect(function(i)
+ if i.UserInputType==Enum.UserInputType.MouseButton1 then
+  mini=not mini
+  f.Size=mini and UDim2.fromOffset(260,36) or UDim2.fromOffset(260,300)
+ end
+end)
+
+local function btn(y,txt)
+ local b=Instance.new("TextButton",f)
+ b.Size=UDim2.fromOffset(240,32)
+ b.Position=UDim2.fromOffset(10,y)
+ b.Text=txt
+ b.BackgroundColor3=Color3.fromRGB(40,40,40)
+ b.TextColor3=Color3.new(1,1,1)
+ return b
+end
+
+local bAuto=btn(50,"Auto NPC: OFF")
+local bESP =btn(90,"ESP NPC: OFF")
+local bJump=btn(130,"High Jump: OFF")
+local bFOV =btn(170,"FOV 90")
+local bFly =btn(210,"Fly (F): OFF")
+local bNoc =btn(250,"Noclip (N): OFF")
+
+local auto,esp,hj,fly,noc=false,false,false,false,false
+local fov=90
+
+local function char()
+ return plr.Character or plr.CharacterAdded:Wait()
+end
+
+-- Auto đánh NPC gần
+RS.Heartbeat:Connect(function()
+ if not auto then return end
+ local c=char()
+ local r=c:FindFirstChild("HumanoidRootPart"); if not r then return end
+ for _,m in pairs(workspace:GetChildren()) do
+  local h=m:FindFirstChild("Humanoid")
+  local hrp=m:FindFirstChild("HumanoidRootPart")
+  if h and hrp and m~=c and (hrp.Position-r.Position).Magnitude<8 then
+   h:TakeDamage(20) -- NPC/Dummy
+  end
+ end
+end)
+bAuto.MouseButton1Click:Connect(function()
+ auto=not auto; bAuto.Text="Auto NPC: "..(auto and "ON" or "OFF")
+end)
+
+-- ESP NPC (Highlight)
+local function setESP(on)
+ for _,m in pairs(workspace:GetChildren()) do
+  if m:FindFirstChild("Humanoid") then
+   local hl=m:FindFirstChild("iosvietHL")
+   if on and not hl then
+    hl=Instance.new("Highlight",m)
+    hl.Name="iosvietHL"
+    hl.FillColor=Color3.fromRGB(255,0,0)
+   elseif not on and hl then hl:Destroy() end
+  end
+ end
+end
+bESP.MouseButton1Click:Connect(function()
+ esp=not esp; setESP(esp)
+ bESP.Text="ESP NPC: "..(esp and "ON" or "OFF")
+end)
+
+-- High Jump
+bJump.MouseButton1Click:Connect(function()
+ hj=not hj
+ char():FindFirstChild("Humanoid").JumpPower=hj and 120 or 50
+ bJump.Text="High Jump: "..(hj and "ON" or "OFF")
+end)
+
+-- FOV
+bFOV.MouseButton1Click:Connect(function()
+ fov=(fov==90 and 70) or (fov==70 and 110) or 90
+ workspace.CurrentCamera.FieldOfView=fov
+ bFOV.Text="FOV "..fov
+end)
+
+-- Fly (F) & Noclip (N)
+UIS.InputBegan:Connect(function(i,gp)
+ if gp then return end
+ if i.KeyCode==Enum.KeyCode.F then
+  fly=not fly; bFly.Text="Fly (F): "..(fly and "ON" or "OFF")
+  local r=char():WaitForChild("HumanoidRootPart")
+  if fly then
+   local bv=Instance.new("BodyVelocity",r)
+   bv.Name="iosvietFly"; bv.MaxForce=Vector3.new(1e5,1e5,1e5)
+   RS.Heartbeat:Connect(function()
+    if fly and bv.Parent then
+     bv.Velocity=workspace.CurrentCamera.CFrame.LookVector*60
+    end
+   end)
+  else
+   for _,v in pairs(r:GetChildren()) do
+    if v:IsA("BodyVelocity") and v.Name=="iosvietFly" then v:Destroy() end
+   end
+  end
+ end
+ if i.KeyCode==Enum.KeyCode.N then
+  noc=not noc; bNoc.Text="Noclip (N): "..(noc and "ON" or "OFF")
+ end
+end)
+RS.Stepped:Connect(function()
+ if noc then
+  for _,p in pairs(char():GetDescendants()) do
+   if p:IsA("BasePart") then p.CanCollide=false end
+  end
+ end
+end)
+ImageButton.Parent = ScreenGui
+ImageButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+ImageButton.BorderSizePixel = 0
+ImageButton.Position = UDim2.new(0.10615778, 0, 0.16217947, 0)
+ImageButton.Size = UDim2.new(0, 40, 0, 40)
+ImageButton.Draggable = true
+ImageButton.Image = "http://www.roblox.com/asset/?id= 139123207424365"
