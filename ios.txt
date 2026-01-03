@@ -1,0 +1,423 @@
+-- SERVICES
+local P = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
+local RS = game:GetService("RunService")
+local Camera = workspace.CurrentCamera
+local plr = P.LocalPlayer
+local bSpeed = btn(330, "Speed: OFF")
+local speedHack = false
+local walkSpeed = 50 -- mặc định chạy nhanh, mặc định Roblox là 16
+
+-- Toggle Speed Hack
+bSpeed.MouseButton1Click:Connect(function()
+    speedHack = not speedHack
+    local hum = char():FindFirstChild("Humanoid")
+    if hum then
+        hum.WalkSpeed = speedHack and walkSpeed or 16
+    end
+    bSpeed.Text = "Speed: "..(speedHack and "ON" or "OFF")
+end)
+
+-- Cập nhật liên tục để tránh bị reset
+RS.Heartbeat:Connect(function()
+    if speedHack then
+        local hum = char():FindFirstChild("Humanoid")
+        if hum and hum.WalkSpeed ~= walkSpeed then
+            hum.WalkSpeed = walkSpeed
+        end
+    end
+end) 
+
+-- VARIABLES
+local auto, esp, hj, fly, noc, espPlayers = false, false, false, false, false, {}
+local fov = 90
+
+-- GUI
+local gui = Instance.new("ScreenGui", plr.PlayerGui)
+gui.Name = "iosviet"
+
+local f = Instance.new("Frame", gui)
+f.Size = UDim2.fromOffset(260,300)
+f.Position = UDim2.fromScale(0.05,0.2)
+f.BackgroundColor3 = Color3.fromRGB(25,25,25)
+f.Active = true; f.Draggable = true
+
+local t = Instance.new("TextLabel", f)
+t.Size = UDim2.fromOffset(260,36)
+t.Text = "iosviet"
+t.TextColor3 = Color3.new(1,1,1)
+t.BackgroundColor3 = Color3.fromRGB(0,120,255)
+
+local mini = false
+t.InputBegan:Connect(function(i)
+    if i.UserInputType == Enum.UserInputType.MouseButton1 then
+        mini = not mini
+        f.Size = mini and UDim2.fromOffset(260,36) or UDim2.fromOffset(260,300)
+    end
+end)
+
+local function btn(y, txt)
+    local b = Instance.new("TextButton", f)
+    b.Size = UDim2.fromOffset(240,32)
+    b.Position = UDim2.fromOffset(10,y)
+    b.Text = txt
+    b.BackgroundColor3 = Color3.fromRGB(40,40,40)
+    b.TextColor3 = Color3.new(1,1,1)
+    return b
+end
+
+local bAuto = btn(50,"Auto NPC: OFF")
+local bESP = btn(90,"ESP Player: OFF")
+local bJump = btn(130,"High Jump: OFF")
+local bFOV = btn(170,"FOV 90")
+local bFly = btn(210,"Fly (F): OFF")
+local bNoc = btn(250,"Noclip (N): OFF")
+
+-- FUNCTIONS
+local function char() return plr.Character or plr.CharacterAdded:Wait() end
+
+-- AUTO NPC
+RS.Heartbeat:Connect(function()
+    if not auto then return end
+    local c = char()
+    local r = c:FindFirstChild("HumanoidRootPart") or c:FindFirstChildWhichIsA("BasePart")
+    if not r then return end
+    for _, m in pairs(workspace:GetChildren()) do
+        local h = m:FindFirstChild("Humanoid")
+        local hrp = m:FindFirstChild("HumanoidRootPart")
+        if h and hrp and m ~= c and (hrp.Position - r.Position).Magnitude < 8 then
+            h:TakeDamage(20)
+        end
+    end
+end)
+
+bAuto.MouseButton1Click:Connect(function()
+    auto = not auto
+    bAuto.Text = "Auto NPC: "..(auto and "ON" or "OFF")
+end)
+
+-- HIGH JUMP
+bJump.MouseButton1Click:Connect(function()
+    hj = not hj
+    char():FindFirstChild("Humanoid").JumpPower = hj and 120 or 50
+    bJump.Text = "High Jump: "..(hj and "ON" or "OFF")
+end)
+
+-- FOV
+bFOV.MouseButton1Click:Connect(function()
+    fov = (fov == 90 and 70) or (fov == 70 and 110) or 90
+    workspace.CurrentCamera.FieldOfView = fov
+    bFOV.Text = "FOV "..fov
+end)
+
+-- FLY & NOCLIP
+UIS.InputBegan:Connect(function(i,gp)
+    if gp then return end
+    if i.KeyCode == Enum.KeyCode.F then
+        fly = not fly; bFly.Text = "Fly (F): "..(fly and "ON" or "OFF")
+        local hrp = char():WaitForChild("HumanoidRootPart")
+        if fly then
+            local bv = Instance.new("BodyVelocity")
+            bv.Name = "iosvietFly"
+            bv.MaxForce = Vector3.new(1e5,1e5,1e5)
+            bv.Velocity = Vector3.new(0,0,0)
+            bv.Parent = hrp
+        else
+            for _,v in pairs(hrp:GetChildren()) do
+                if v:IsA("BodyVelocity") and v.Name=="iosvietFly" then v:Destroy() end
+            end
+        end
+    elseif i.KeyCode == Enum.KeyCode.N then
+        noc = not noc; bNoc.Text = "Noclip (N): "..(noc and "ON" or "OFF")
+    end
+end)
+
+RS.Heartbeat:Connect(function()
+    local c = char()
+    local hrp = c:FindFirstChild("HumanoidRootPart")
+    if fly and hrp then
+        local bv = hrp:FindFirstChild("iosvietFly")
+        if bv then bv.Velocity = workspace.CurrentCamera.CFrame.LookVector * 60 end
+    end
+    if noc then
+        for _,p in pairs(c:GetDescendants()) do
+            if p:IsA("BasePart") then p.CanCollide = false end
+        end
+    end
+end)
+
+-- ESP PLAYER
+local function createESP(player)
+    if player == plr then return end
+    local box = Drawing.new("Square")
+    local name = Drawing.new("Text")
+    local line = Drawing.new("Line")
+
+    box.Color = Color3.fromRGB(255,0,0)
+    box.Thickness = 1
+    box.Filled = false
+    box.Visible = false
+
+    name.Color = Color3.new(1,1,1)
+    name.Size = 13
+    name.Center = true
+    name.Outline = true
+    name.Visible = false
+
+    line.Color = Color3.fromRGB(0,255,0)
+    line.Thickness = 1
+    line.Visible = false
+
+    espPlayers[player] = {box=box,name=name,line=line}
+
+    -- UPDATE ESP
+    RS.RenderStepped:Connect(function()
+        if not esp then 
+            box.Visible = false
+            name.Visible = false
+            line.Visible = false
+            return
+        end
+        if player.Character and player.Character:FindFirstChild("HumanoidRootPart") and player.Character:FindFirstChild("Humanoid") then
+            local hrp = player.Character.HumanoidRootPart
+            local hum = player.Character.Humanoid
+            if hum.Health > 0 then
+                local pos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
+                if onScreen then
+                    local scale = 1 / (pos.Z / 600)
+                    local size = Vector2.new(4,6) * scale * 50
+                    box.Size = size
+                    box.Position = Vector2.new(pos.X - size.X/2, pos.Y - size.Y/2)
+                    box.Visible = true
+                    name.Text = player.Name
+                    name.Position = Vector2.new(pos.X,pos.Y - size.Y/2 - 14)
+                    name.Visible = true
+                    line.From = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y)
+                    line.To = Vector2.new(pos.X,pos.Y)
+                    line.Visible = true
+                else
+                    box.Visible = false; name.Visible=false; line.Visible=false
+                end
+            else
+                box.Visible=false; name.Visible=false; line.Visible=false
+            end
+        else
+            box.Visible=false; name.Visible=false; line.Visible=false
+        end
+    end)
+end
+
+-- TOGGLE ESP
+bESP.MouseButton1Click:Connect(function()
+    esp = not esp
+    bESP.Text = "ESP Player: "..(esp and "ON" or "OFF")
+end)
+
+-- APPLY ESP TO ALL PLAYERS
+for _,p in pairs(P:GetPlayers()) do createESP(p) end
+P.PlayerAdded:Connect(createESP)
+-- GUI BUTTON
+local bCamLock = btn(290, "CamLock: OFF")
+local camlock = false
+local camTarget = nil
+
+-- Tìm target gần nhất
+local function getNearestTarget(range)
+    local c = char()
+    local hrp = c:FindFirstChild("HumanoidRootPart")
+    if not hrp then return nil end
+    local nearest = nil
+    local dist = range or 100
+    for _,p in pairs(P:GetPlayers()) do
+        if p ~= plr and p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character:FindFirstChild("Humanoid") then
+            local hum = p.Character.Humanoid
+            if hum.Health > 0 then
+                local d = (p.Character.HumanoidRootPart.Position - hrp.Position).Magnitude
+                if d < dist then
+                    dist = d
+                    nearest = p.Character.HumanoidRootPart
+                end
+            end
+        end
+    end
+    -- NPCs
+    for _,m in pairs(workspace:GetChildren()) do
+        if m:FindFirstChild("Humanoid") and m:FindFirstChild("HumanoidRootPart") and m ~= char() then
+            local hum = m.Humanoid
+            local hrpNPC = m.HumanoidRootPart
+            if hum.Health > 0 then
+                local d = (hrpNPC.Position - hrp.Position).Magnitude
+                if d < dist then
+                    dist = d
+                    nearest = hrpNPC
+                end
+            end
+        end
+    end
+    return nearest
+end
+
+-- Toggle CamLock
+bCamLock.MouseButton1Click:Connect(function()
+    camlock = not camlock
+    bCamLock.Text = "CamLock: "..(camlock and "ON" or "OFF")
+end)
+
+-- Update Camera hướng về target
+RS.RenderStepped:Connect(function()
+    if camlock then
+        local c = char()
+        local hrp = c:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            camTarget = getNearestTarget(50) -- khoảng cách max 50
+            if camTarget then
+                local dir = (camTarget.Position - hrp.Position).Unit
+                local newCFrame = CFrame.new(hrp.Position, camTarget.Position)
+                workspace.CurrentCamera.CFrame = newCFrame
+            end
+        end
+    end
+end)
+
+local P=game:GetService("Players")
+local UIS=game:GetService("UserInputService")
+local RS=game:GetService("RunService")
+local plr=P.LocalPlayer
+
+-- UI
+local gui=Instance.new("ScreenGui",plr.PlayerGui); gui.Name="iosviet"
+local f=Instance.new("Frame",gui)
+f.Size=UDim2.fromOffset(260,300)
+f.Position=UDim2.fromScale(.05,.2)
+f.BackgroundColor3=Color3.fromRGB(25,25,25)
+f.Active=true; f.Draggable=true
+local t=Instance.new("TextLabel",f)
+t.Size=UDim2.fromOffset(260,36)
+t.Text="iosviet"; t.TextColor3=Color3.new(1,1,1)
+t.BackgroundColor3=Color3.fromRGB(0,120,255)
+
+local mini=false
+t.InputBegan:Connect(function(i)
+ if i.UserInputType==Enum.UserInputType.MouseButton1 then
+  mini=not mini
+  f.Size=mini and UDim2.fromOffset(260,36) or UDim2.fromOffset(260,300)
+ end
+end)
+
+local function btn(y,txt)
+ local b=Instance.new("TextButton",f)
+ b.Size=UDim2.fromOffset(240,32)
+ b.Position=UDim2.fromOffset(10,y)
+ b.Text=txt
+ b.BackgroundColor3=Color3.fromRGB(40,40,40)
+ b.TextColor3=Color3.new(1,1,1)
+ return b
+end
+
+local bAuto=btn(50,"Auto NPC: OFF")
+local bESP =btn(90,"ESP NPC: OFF")
+local bJump=btn(130,"High Jump: OFF")
+local bFOV =btn(170,"FOV 90")
+local bFly =btn(210,"Fly (F): OFF")
+local bNoc =btn(250,"Noclip (N): OFF")
+
+local auto,esp,hj,fly,noc=false,false,false,false,false
+local fov=90
+
+local function char()
+ return plr.Character or plr.CharacterAdded:Wait()
+end
+
+-- Auto đánh NPC gần
+RS.Heartbeat:Connect(function()
+ if not auto then return end
+ local c=char()
+ local r=c:FindFirstChild("HumanoidRootPart"); if not r then return end
+ for _,m in pairs(workspace:GetChildren()) do
+  local h=m:FindFirstChild("Humanoid")
+  local hrp=m:FindFirstChild("HumanoidRootPart")
+  if h and hrp and m~=c and (hrp.Position-r.Position).Magnitude<8 then
+   h:TakeDamage(20) -- NPC/Dummy
+  end
+ end
+end)
+bAuto.MouseButton1Click:Connect(function()
+ auto=not auto; bAuto.Text="Auto NPC: "..(auto and "ON" or "OFF")
+end)
+
+-- ESP NPC (Highlight)
+local function setESP(on)
+ for _,m in pairs(workspace:GetChildren()) do
+  if m:FindFirstChild("Humanoid") then
+   local hl=m:FindFirstChild("iosvietHL")
+   if on and not hl then
+    hl=Instance.new("Highlight",m)
+    hl.Name="iosvietHL"
+    hl.FillColor=Color3.fromRGB(255,0,0)
+   elseif not on and hl then hl:Destroy() end
+  end
+ end
+end
+bESP.MouseButton1Click:Connect(function()
+ esp=not esp; setESP(esp)
+ bESP.Text="ESP NPC: "..(esp and "ON" or "OFF")
+end)
+
+-- High Jump
+bJump.MouseButton1Click:Connect(function()
+ hj=not hj
+ char():FindFirstChild("Humanoid").JumpPower=hj and 120 or 50
+ bJump.Text="High Jump: "..(hj and "ON" or "OFF")
+end)
+
+-- FOV
+bFOV.MouseButton1Click:Connect(function()
+ fov=(fov==90 and 70) or (fov==70 and 110) or 90
+ workspace.CurrentCamera.FieldOfView=fov
+ bFOV.Text="FOV "..fov
+end)
+
+-- Fly (F) & Noclip (N)
+UIS.InputBegan:Connect(function(i,gp)
+ if gp then return end
+ if i.KeyCode==Enum.KeyCode.F then
+  fly=not fly; bFly.Text="Fly (F): "..(fly and "ON" or "OFF")
+  local r=char():WaitForChild("HumanoidRootPart")
+  if fly then
+   local bv=Instance.new("BodyVelocity",r)
+   bv.Name="iosvietFly"; bv.MaxForce=Vector3.new(1e5,1e5,1e5)
+   RS.Heartbeat:Connect(function()
+    if fly and bv.Parent then
+     bv.Velocity=workspace.CurrentCamera.CFrame.LookVector*60
+    end
+   end)
+  else
+   for _,v in pairs(r:GetChildren()) do
+    if v:IsA("BodyVelocity") and v.Name=="iosvietFly" then v:Destroy() end
+   end
+  end
+ end
+ if i.KeyCode==Enum.KeyCode.N then
+  noc=not noc; bNoc.Text="Noclip (N): "..(noc and "ON" or "OFF")
+ end
+end)
+RS.Stepped:Connect(function()
+ if noc then
+  for _,p in pairs(char():GetDescendants()) do
+   if p:IsA("BasePart") then p.CanCollide=false end
+  end
+ end
+end)
+ImageButton.Parent = ScreenGui
+ImageButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+ImageButton.BorderSizePixel = 0
+ImageButton.Position = UDim2.new(0.10615778, 0, 0.16217947, 0)
+ImageButton.Size = UDim2.new(0, 40, 0, 40)
+ImageButton.Draggable = true
+ImageButton.Image = "http://www.roblox.com/asset/?id= 139123207424365"
+local bAim = btn(370,"Skill Aimbot: OFF")
+local aimbot = false
+bAim.MouseButton1Click:Connect(function()
+    aimbot = not aimbot
+    bAim.Text = "Skill Aimbot: "..(aimbot and "ON" or "OFF")
+end)
