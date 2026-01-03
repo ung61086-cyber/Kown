@@ -1,24 +1,4 @@
---================ 4 FINGER TOGGLE MENU =================
-local touchCount = 0
-local menuVisible = false
-local canToggle = true
 
--- Ẩn menu lúc vào game
-f.Visible = false
-
-UIS.TouchStarted:Connect(function()
-	touchCount += 1
-
-	if touchCount >= 4 and canToggle then
-		menuVisible = not menuVisible
-		f.Visible = menuVisible
-
-		canToggle = false
-		task.delay(0.6, function()
-			canToggle = true
-		end)
-	end
-end)
 
 UIS.TouchEnded:Connect(function()
 	touchCount = math.max(touchCount - 1, 0)
