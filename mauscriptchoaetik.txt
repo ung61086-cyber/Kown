@@ -45,10 +45,207 @@ local Window = Fluent:CreateWindow({
 local Tabs = {
 	Main0 = Window:AddTab({ Title = "một số kênh🤓" }),  -- 👈 đổi tên tab 1
 	Main1 = Window:AddTab({ Title = "Aimbot" }),  -- 👈 đổi tên tab 2
-	Main2 = Window:AddTab({ Title = "bran rót💩" }),     -- 👈 đổi tên tab 3
-	Main3 = Window:AddTab({ Title = "99 đêm🥷" }),        -- 👈 đổi tên tab 4
-	Main4 = Window:AddTab({ Title = "blox fruit🍎" }),    -- 👈 đổi tên tab 5
-	Main5 = Window:AddTab({ Title = "plan vs branro🌲🐘t" }) -- 👈 đổi tên tab 6
+	Main2 = Window:AddTab({ Title = " -- HITBOX DEBUG / NPC TRAINING
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+-- Cấu hình
+local HITBOX_SIZE = Vector3.new(10, 10, 10) -- kích thước hitbox
+local HITBOX_COLOR = Color3.fromRGB(255, 0, 0)
+local TRANSPARENCY = 0.6 -- độ trong suốt
+
+-- Tạo Hitbox
+local function createHitbox(character)
+    local hrp = character:WaitForChild("HumanoidRootPart", 5)
+    if not hrp then return end
+    if hrp:FindFirstChild("HITBOX") then return end
+
+    local hitbox = Instance.new("Part")
+    hitbox.Name = "HITBOX"
+    hitbox.Size = HITBOX_SIZE
+    hitbox.Color = HITBOX_COLOR
+    hitbox.Transparency = TRANSPARENCY
+    hitbox.Material = Enum.Material.Neon
+    hitbox.CanCollide = false
+    hitbox.Anchored = false
+    hitbox.Massless = true
+    hitbox.Parent = hrp
+
+    -- Gắn hitbox theo nhân vật
+    local weld = Instance.new("WeldConstraint")
+    weld.Part0 = hrp
+    weld.Part1 = hitbox
+    weld.Parent = hitbox
+end
+
+-- Áp dụng cho Player khác
+local function setupPlayer(player)
+    if player == LocalPlayer then return end
+    if player.Character then
+        createHitbox(player.Character)
+    end
+    player.CharacterAdded:Connect(createHitbox)
+end
+
+for _, plr in pairs(Players:GetPlayers()) do
+    setupPlayer(plr)
+end
+
+Players.PlayerAdded:Connect(setupPlayer)" }),     -- 👈 đổi tên tab 3
+	Main3 = Window:AddTab({ Title = " -- ESP HP - Game test / NPC training
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+local function createESPHP(character)
+    local humanoid = character:WaitForChild("Humanoid", 5)
+    local head = character:WaitForChild("Head", 5)
+    if not humanoid or not head then return end
+    if character:FindFirstChild("ESP_HP") then return end
+
+    -- BillboardGui
+    local gui = Instance.new("BillboardGui")
+    gui.Name = "ESP_HP"
+    gui.Adornee = head
+    gui.Size = UDim2.new(4, 0, 0.5, 0)
+    gui.StudsOffset = Vector3.new(0, 2.5, 0)
+    gui.AlwaysOnTop = true
+    gui.Parent = character
+
+    -- Background
+    local bg = Instance.new("Frame", gui)
+    bg.Size = UDim2.new(1, 0, 0.3, 0)
+    bg.Position = UDim2.new(0, 0, 0.35, 0)
+    bg.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    bg.BorderSizePixel = 0
+
+    -- Health bar
+    local bar = Instance.new("Frame", bg)
+    bar.Size = UDim2.new(1, 0, 1, 0)
+    bar.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+    bar.BorderSizePixel = 0
+
+    -- Bo góc
+    Instance.new("UICorner", bg).CornerRadius = UDim.new(0, 6)
+    Instance.new("UICorner", bar).CornerRadius = UDim.new(0, 6)
+
+    -- Update HP
+    local function update()
+        local percent = math.clamp(humanoid.Health / humanoid.MaxHealth, 0, 1)
+        bar.Size = UDim2.new(percent, 0, 1, 0)
+
+        -- Đổi màu theo máu
+        if percent > 0.6 then
+            bar.BackgroundColor3 = Color3.fromRGB(0, 255, 0) -- xanh
+        elseif percent > 0.3 then
+            bar.BackgroundColor3 = Color3.fromRGB(255, 170, 0) -- vàng
+        else
+            bar.BackgroundColor3 = Color3.fromRGB(255, 0, 0) -- đỏ
+        end
+    end
+
+    humanoid.HealthChanged:Connect(update)
+    update()
+end
+
+-- Player khác
+local function setupPlayer(player)
+    if player == LocalPlayer then return end
+    if player.Character then
+        createESPHP(player.Character)
+    end
+    player.CharacterAdded:Connect(createESPHP)
+end
+
+for _, plr in pairs(Players:GetPlayers()) do
+    setupPlayer(plr)
+end
+
+Players.PlayerAdded:Connect(setupPlayer)" }),        -- 👈 đổi tên tab 4
+	Main4 = Window:AddTab({ Title = " -- ESP LINE - Game test / NPC training
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+-- Tạo ESP Line
+local function createESPLine(character)
+    local hrp = character:WaitForChild("HumanoidRootPart", 5)
+    if not hrp then return end
+    if character:FindFirstChild("ESP_LINE") then return end
+
+    -- Attachment ở bạn
+    local myChar = LocalPlayer.Character
+    if not myChar or not myChar:FindFirstChild("HumanoidRootPart") then return end
+
+    local att0 = Instance.new("Attachment")
+    att0.Name = "ESP_Att0"
+    att0.Parent = myChar.HumanoidRootPart
+
+    -- Attachment ở target
+    local att1 = Instance.new("Attachment")
+    att1.Name = "ESP_Att1"
+    att1.Parent = hrp
+
+    -- Beam (line)
+    local beam = Instance.new("Beam")
+    beam.Name = "ESP_LINE"
+    beam.Attachment0 = att0
+    beam.Attachment1 = att1
+    beam.Width0 = 0.05
+    beam.Width1 = 0.05
+    beam.FaceCamera = true
+    beam.Color = ColorSequence.new(Color3.fromRGB(255, 0, 0))
+    beam.Transparency = NumberSequence.new(0)
+    beam.LightEmission = 1
+    beam.Parent = character
+end
+
+-- Player khác
+local function setupPlayer(player)
+    if player == LocalPlayer then return end
+    if player.Character then
+        createESPLine(player.Character)
+    end
+    player.CharacterAdded:Connect(createESPLine)
+end
+
+for _, plr in pairs(Players:GetPlayers()) do
+    setupPlayer(plr)
+end
+
+Players.PlayerAdded:Connect(setupPlayer)" }),    -- 👈 đổi tên tab 5
+	Main5 = Window:AddTab({ Title = " -- ESP BOX - Dùng cho game test / NPC training
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+-- Hàm tạo ESP BOX
+local function createESP(character)
+    if not character:FindFirstChild("HumanoidRootPart") then return end
+    if character:FindFirstChild("ESP_BOX") then return end
+
+    local box = Instance.new("SelectionBox")
+    box.Name = "ESP_BOX"
+    box.Adornee = character.HumanoidRootPart
+    box.LineThickness = 0.05
+    box.Color3 = Color3.fromRGB(255, 0, 0) -- màu đỏ
+    box.SurfaceTransparency = 1
+    box.Parent = character
+end
+
+-- Gắn ESP cho player khác
+for _, player in pairs(Players:GetPlayers()) do
+    if player ~= LocalPlayer then
+        if player.Character then
+            createESP(player.Character)
+        end
+        player.CharacterAdded:Connect(createESP)
+    end
+end
+
+-- Khi có player mới
+Players.PlayerAdded:Connect(function(player)
+    if player ~= LocalPlayer then
+        player.CharacterAdded:Connect(createESP)
+    end
+end)" }) -- 👈 đổi tên tab 6
 }
 
 ------------------------------------------------
