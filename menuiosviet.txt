@@ -1,0 +1,249 @@
+--================ 4 FINGER TOGGLE MENU =================
+local touchCount = 0
+local menuVisible = false
+local canToggle = true
+
+-- Ẩn menu lúc vào game
+f.Visible = false
+
+UIS.TouchStarted:Connect(function()
+	touchCount += 1
+
+	if touchCount >= 4 and canToggle then
+		menuVisible = not menuVisible
+		f.Visible = menuVisible
+
+		canToggle = false
+		task.delay(0.6, function()
+			canToggle = true
+		end)
+	end
+end)
+
+UIS.TouchEnded:Connect(function()
+	touchCount = math.max(touchCount - 1, 0)
+end) --================ SERVICES =================
+local P = game:GetService("Players")
+local RS = game:GetService("RunService")
+local plr = P.LocalPlayer
+local cam = workspace.CurrentCamera
+
+--================ VAR =================
+local combo = false
+
+--================ FOV CIRCLE =================
+local fovRadius = 120
+local fovCircle = Drawing.new("Circle")
+fovCircle.Visible = false
+fovCircle.Thickness = 2
+fovCircle.Color = Color3.fromRGB(255,255,255)
+fovCircle.Filled = false
+
+--================ UI =================
+local gui = Instance.new("ScreenGui", plr.PlayerGui)
+gui.Name = "iosviet"
+
+local f = Instance.new("Frame", gui)
+f.Size = UDim2.fromOffset(260,460)
+f.Position = UDim2.fromScale(.05,.2)
+f.BackgroundColor3 = Color3.fromRGB(25,25,25)
+f.Active = true
+f.Draggable = true
+
+local t = Instance.new("TextLabel", f)
+t.Size = UDim2.fromOffset(260,36)
+t.Text = "iosviet"
+t.TextColor3 = Color3.new(1,1,1)
+t.BackgroundColor3 = Color3.fromRGB(0,120,255)
+
+local mini = false
+t.InputBegan:Connect(function(i)
+if i.UserInputType == Enum.UserInputType.MouseButton1 then
+mini = not mini
+f.Size = mini and UDim2.fromOffset(260,36) or UDim2.fromOffset(260,460)
+end
+end)
+
+local function btn(y,txt)
+local b = Instance.new("TextButton", f)
+b.Size = UDim2.fromOffset(240,32)
+b.Position = UDim2.fromOffset(10,y)
+b.Text = txt
+b.BackgroundColor3 = Color3.fromRGB(40,40,40)
+b.TextColor3 = Color3.new(1,1,1)
+return b
+end
+
+local bCombo = btn(50,"COMBO PLAYER: OFF")
+local bPlus  = btn(90,"FOV +")
+local bMinus = btn(130,"FOV -")
+
+--================ FOV UPDATE =================
+RS.RenderStepped:Connect(function()
+local vp = cam.ViewportSize
+fovCircle.Position = Vector2.new(vp.X/2, vp.Y/2)
+fovCircle.Radius = fovRadius
+fovCircle.Visible = combo
+end)
+
+--================ COMBO VISUAL (ESP + BOX + HITBOX) =================
+local function comboVisual(on)
+for _,p in pairs(P:GetPlayers()) do
+if p ~= plr and p.Character then
+local c = p.Character
+local hrp = c:FindFirstChild("HumanoidRootPart")
+
+-- ESP Highlight
+local hl = c:FindFirstChild("iosvietESP")
+if on and not hl then
+hl = Instance.new("Highlight", c)
+hl.Name = "iosvietESP"
+hl.FillColor = Color3.fromRGB(0,255,0)
+hl.OutlineColor = Color3.new(1,1,1)
+elseif not on and hl then
+hl:Destroy()
+end
+
+if hrp then
+-- Hitbox ảo
+local hb = hrp:FindFirstChild("iosvietFakeHB")
+if on and not hb then
+hb = Instance.new("BoxHandleAdornment", hrp)
+hb.Name = "iosvietFakeHB"
+hb.Size = Vector3.new(6,6,6)
+hb.Color3 = Color3.fromRGB(255,0,0)
+hb.Transparency = 0.6
+hb.AlwaysOnTop = true
+hb.Adornee = hrp
+elseif not on and hb then
+hb:Destroy()
+end
+
+-- ESP Box (hộp người)  
+local box = hrp:FindFirstChild("iosvietESPBox")  
+if on and not box then  
+ box = Instance.new("BoxHandleAdornment", hrp)  
+ box.Name = "iosvietESPBox"  
+ box.Size = Vector3.new(4,7,3)  
+ box.Color3 = Color3.fromRGB(0,170,255)  
+ box.Transparency = 0.7  
+ box.AlwaysOnTop = true  
+ box.ZIndex = 5  
+ box.Adornee = hrp  
+elseif not on and box then  
+ box:Destroy()  
+end
+
+end
+end
+end
+end
+
+--================ ESP HP =================
+local function setESPHP(on)
+for _,p in pairs(P:GetPlayers()) do
+if p ~= plr and p.Character then
+local hum = p.Character:FindFirstChild("Humanoid")
+local hrp = p.Character:FindFirstChild("HumanoidRootPart")
+if hum and hrp then
+local gui = hrp:FindFirstChild("iosvietHP")
+
+if on and not gui then  
+ gui = Instance.new("BillboardGui", hrp)  
+ gui.Name = "iosvietHP"  
+ gui.Size = UDim2.fromOffset(60,8)  
+ gui.StudsOffset = Vector3.new(0,3,0)  
+ gui.AlwaysOnTop = true  
+
+ local bg = Instance.new("Frame", gui)  
+ bg.Size = UDim2.fromScale(1,1)  
+ bg.BackgroundColor3 = Color3.fromRGB(40,40,40)  
+ bg.BorderSizePixel = 0  
+
+ local bar = Instance.new("Frame", bg)  
+ bar.BorderSizePixel = 0  
+
+ hum.HealthChanged:Connect(function(hp)  
+  bar.Size = UDim2.fromScale(math.clamp(hp/hum.MaxHealth,0,1),1)  
+  bar.BackgroundColor3 =  
+   hp>60 and Color3.fromRGB(0,255,0) or  
+   hp>30 and Color3.fromRGB(255,170,0) or  
+   Color3.fromRGB(255,0,0)  
+ end)  
+elseif not on and gui then  
+ gui:Destroy()  
+end
+
+end
+end
+end
+end
+
+--================ AIM ASSIST =================
+local function getClosestPlayer()
+local best,dist=nil,math.huge
+local center=Vector2.new(cam.ViewportSize.X/2,cam.ViewportSize.Y/2)
+
+for _,p in pairs(P:GetPlayers()) do
+if p~=plr and p.Character then
+local hrp=p.Character:FindFirstChild("HumanoidRootPart")
+local hum=p.Character:FindFirstChild("Humanoid")
+if hrp and hum and hum.Health>0 then
+local pos,vis=cam:WorldToViewportPoint(hrp.Position)
+if vis then
+local mag=(Vector2.new(pos.X,pos.Y)-center).Magnitude
+if mag<=fovRadius and mag<dist then
+dist=mag
+best=hrp
+end
+end
+end
+end
+end
+return best
+end
+
+RS.RenderStepped:Connect(function()
+if combo then
+local t=getClosestPlayer()
+if t then
+cam.CFrame=cam.CFrame:Lerp(
+CFrame.new(cam.CFrame.Position,t.Position),0.08
+)
+end
+end
+end)
+
+--================ BUTTON =================
+bCombo.MouseButton1Click:Connect(function()
+combo = not combo
+comboVisual(combo)
+setESPHP(combo)
+bCombo.Text = "COMBO PLAYER: "..(combo and "ON" or "OFF")
+end)
+
+bPlus.MouseButton1Click:Connect(function()
+fovRadius = math.clamp(fovRadius + 20, 50, 400)
+end)
+
+bMinus.MouseButton1Click:Connect(function()
+fovRadius = math.clamp(fovRadius - 20, 50, 400)
+end)--================ 4 FINGER OPEN MENU =================
+local touchCount = 0
+local menuVisible = true
+
+-- Ẩn menu ban đầu
+f.Visible = false
+menuVisible = false
+
+UIS.TouchStarted:Connect(function()
+touchCount += 1
+if touchCount >= 4 and not menuVisible then
+f.Visible = true
+menuVisible = true
+end
+end)
+
+UIS.TouchEnded:Connect(function()
+touchCount = math.max(touchCount - 1, 0)
+end)
