@@ -1,0 +1,230 @@
+-- IOSVIET AIM TRAINING (ALL-IN-ONE | STABLE)
+
+---------------- SERVICES ----------------
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UIS = game:GetService("UserInputService")
+local Lighting = game:GetService("Lighting")
+local Camera = workspace.CurrentCamera
+local LP = Players.LocalPlayer
+local Mouse = LP:GetMouse()
+
+---------------- SETTINGS ----------------
+local AimRadius = 120
+local Aimbot = false
+local ESP_Line = false
+local ESP_HP = false
+local Hitbox = false
+local Optimize = false -- FIX LAG + GIẢM HIỆU ỨNG
+
+local HitboxSize = Vector3.new(6,6,6)
+local HitboxTransparency = 0.6
+
+---------------- STORAGE ----------------
+local ESP_Lines = {}
+local HP_ESP = {}
+local HitboxBackup = {}
+
+---------------- FOV ----------------
+local FOV = Drawing.new("Circle")
+FOV.Color = Color3.fromRGB(0,255,0)
+FOV.Thickness = 2
+FOV.NumSides = 100
+FOV.Filled = false
+FOV.Visible = false
+
+---------------- OPTIMIZE (FIX LAG + EFFECT) ----------------
+local function ApplyOptimize(state)
+    Optimize = state
+
+    -- Lighting
+    Lighting.GlobalShadows = not state
+    Lighting.FogEnd = state and 9e9 or 1000
+    Lighting.EnvironmentDiffuseScale = state and 0 or 1
+    Lighting.EnvironmentSpecularScale = state and 0 or 1
+
+    for _,v in ipairs(Lighting:GetChildren()) do
+        if v:IsA("PostEffect") then
+            v.Enabled = not state
+        end
+    end
+
+    -- Workspace
+    for _,v in ipairs(workspace:GetDescendants()) do
+        if v:IsA("BasePart") and state then
+            v.Material = Enum.Material.Plastic
+            v.Reflectance = 0
+        elseif v:IsA("ParticleEmitter")
+        or v:IsA("Trail")
+        or v:IsA("Smoke")
+        or v:IsA("Fire") then
+            v.Enabled = not state
+        end
+    end
+end
+
+---------------- UI ----------------
+local gui = Instance.new("ScreenGui", LP.PlayerGui)
+gui.Name = "IOSVIET_MENU"
+gui.ResetOnSpawn = false
+
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.fromOffset(260,360)
+frame.Position = UDim2.fromScale(0.5,0.5)
+frame.AnchorPoint = Vector2.new(0.5,0.5)
+frame.BackgroundColor3 = Color3.fromRGB(20,80,200)
+frame.Active = true
+frame.Draggable = true
+
+local function button(text,y,cb)
+    local b = Instance.new("TextButton",frame)
+    b.Size = UDim2.new(1,-20,0,35)
+    b.Position = UDim2.new(0,10,0,y)
+    b.Text = text
+    b.TextColor3 = Color3.new(1,1,1)
+    b.BackgroundColor3 = Color3.fromRGB(0,120,255)
+    b.BorderSizePixel = 0
+    b.MouseButton1Click:Connect(cb)
+end
+
+---------------- BUTTONS ----------------
+button("AIMBOT",20,function()
+    Aimbot = not Aimbot
+    FOV.Visible = Aimbot
+end)
+
+button("HITBOX",60,function()
+    Hitbox = not Hitbox
+end)
+
+button("ESP LINE",100,function()
+    ESP_Line = not ESP_Line
+end)
+
+button("ESP HP",140,function()
+    ESP_HP = not ESP_HP
+end)
+
+button("FIX LAG + GIẢM HIỆU ỨNG",180,function()
+    ApplyOptimize(not Optimize)
+end)
+
+---------------- FUNCTIONS ----------------
+local function getTarget()
+    local closest, dist = nil, AimRadius
+    for _,m in ipairs(workspace:GetChildren()) do
+        if m:IsA("Model") and m:FindFirstChild("Humanoid") and m:FindFirstChild("Head") and m ~= LP.Character then
+            local pos, ons = Camera:WorldToViewportPoint(m.Head.Position)
+            if ons then
+                local mag = (Vector2.new(pos.X,pos.Y)-Vector2.new(Mouse.X,Mouse.Y)).Magnitude
+                if mag < dist then
+                    dist = mag
+                    closest = m
+                end
+            end
+        end
+    end
+    return closest
+end
+
+local function ApplyHitbox(char)
+    local h = char.Head
+    if not HitboxBackup[h] then
+        HitboxBackup[h] = {h.Size,h.Transparency,h.CanCollide}
+    end
+    h.Size = HitboxSize
+    h.Transparency = HitboxTransparency
+    h.CanCollide = false
+end
+
+local function ResetHitbox(char)
+    local h = char.Head
+    local old = HitboxBackup[h]
+    if old then
+        h.Size, h.Transparency, h.CanCollide = old[1], old[2], old[3]
+        HitboxBackup[h] = nil
+    end
+end
+
+local function CreateHPESP(char)
+    if not ESP_HP or HP_ESP[char] then return end
+    local hum = char:FindFirstChild("Humanoid")
+    local head = char:FindFirstChild("Head")
+    if not hum or not head then return end
+
+    local gui = Instance.new("BillboardGui", head)
+    gui.Size = UDim2.new(4,0,0.3,0)
+    gui.StudsOffset = Vector3.new(0,3,0)
+    gui.AlwaysOnTop = true
+
+    local bg = Instance.new("Frame",gui)
+    bg.Size = UDim2.new(1,0,1,0)
+    bg.BackgroundColor3 = Color3.fromRGB(40,40,40)
+
+    local bar = Instance.new("Frame",bg)
+    bar.Size = UDim2.new(1,0,1,0)
+    bar.BackgroundColor3 = Color3.fromRGB(0,255,0)
+
+    HP_ESP[char] = gui
+
+    hum.HealthChanged:Connect(function()
+        if hum.Health <= 0 then
+            gui:Destroy()
+            HP_ESP[char] = nil
+            return
+        end
+        local p = hum.Health/hum.MaxHealth
+        bar.Size = UDim2.new(p,0,1,0)
+        bar.BackgroundColor3 =
+            p>0.6 and Color3.fromRGB(0,255,0)
+            or p>0.3 and Color3.fromRGB(255,170,0)
+            or Color3.fromRGB(255,0,0)
+    end)
+end
+
+---------------- MAIN LOOP ----------------
+RunService.RenderStepped:Connect(function()
+    FOV.Position = Camera.ViewportSize/2
+    FOV.Radius = AimRadius
+
+    for _,m in ipairs(workspace:GetChildren()) do
+        if m:IsA("Model") and m:FindFirstChild("Humanoid") and m:FindFirstChild("Head") and m ~= LP.Character then
+            if ESP_HP then CreateHPESP(m) end
+
+            if ESP_Line then
+                local pos, ons = Camera:WorldToViewportPoint(m.Head.Position)
+                if ons then
+                    if not ESP_Lines[m] then
+                        ESP_Lines[m] = Drawing.new("Line")
+                        ESP_Lines[m].Thickness = 1.5
+                        ESP_Lines[m].Color = Color3.fromRGB(0,255,0)
+                    end
+                    ESP_Lines[m].From = Vector2.new(Camera.ViewportSize.X/2,Camera.ViewportSize.Y)
+                    ESP_Lines[m].To = Vector2.new(pos.X,pos.Y)
+                    ESP_Lines[m].Visible = true
+                end
+            elseif ESP_Lines[m] then
+                ESP_Lines[m].Visible = false
+            end
+        end
+    end
+
+    if Aimbot then
+        local target = getTarget()
+        if target then
+            if Hitbox then ApplyHitbox(target) else ResetHitbox(target) end
+            Camera.CFrame = Camera.CFrame:Lerp(
+                CFrame.new(Camera.CFrame.Position,target.Head.Position),
+                0.12
+            )
+        end
+    end
+end)
+
+---------------- TOGGLE MENU ----------------
+UIS.InputBegan:Connect(function(i,gp)
+    if gp then return end
+    if i.KeyCode == Enum.KeyCode.RightShift then
+        gui.Enabled = not gui.Enabled
+    end
+end)
