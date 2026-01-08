@@ -1,0 +1,104 @@
+-- UI AIM TRAINING (NPC ONLY)
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Camera = workspace.CurrentCamera
+local LP = Players.LocalPlayer
+local Mouse = LP:GetMouse()
+
+-- SETTINGS
+local AimRadius = 100
+local Aimbot = false
+local Hitbox = false
+local ESP_Line = false
+local ESP_Box = false
+local ESP_HP = false
+
+-- UI
+local gui = Instance.new("ScreenGui", LP.PlayerGui)
+gui.Name = "IOSVIET_MENU"
+
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.fromOffset(260, 330)
+frame.Position = UDim2.fromScale(0.5, 0.5)
+frame.AnchorPoint = Vector2.new(0.5,0.5)
+frame.BackgroundColor3 = Color3.fromRGB(20,80,200)
+frame.BorderSizePixel = 0
+frame.Active = true
+frame.Draggable = true
+
+local function button(text,y,callback)
+    local b = Instance.new("TextButton", frame)
+    b.Size = UDim2.new(1,-20,0,35)
+    b.Position = UDim2.new(0,10,0,y)
+    b.Text = text
+    b.TextColor3 = Color3.new(1,1,1)
+    b.BackgroundColor3 = Color3.fromRGB(0,120,255)
+    b.BorderSizePixel = 0
+    b.MouseButton1Click:Connect(callback)
+    return b
+end
+
+-- SLIDER
+local slider = Instance.new("Frame", frame)
+slider.Size = UDim2.new(1,-20,0,30)
+slider.Position = UDim2.new(0,10,0,20)
+slider.BackgroundColor3 = Color3.fromRGB(50,50,50)
+
+local bar = Instance.new("Frame", slider)
+bar.Size = UDim2.new(0.5,0,1,0)
+bar.BackgroundColor3 = Color3.fromRGB(0,255,0)
+
+slider.InputBegan:Connect(function(i)
+    if i.UserInputType == Enum.UserInputType.MouseButton1 then
+        local move
+        move = RunService.RenderStepped:Connect(function()
+            local x = math.clamp((Mouse.X - slider.AbsolutePosition.X) / slider.AbsoluteSize.X,0,1)
+            bar.Size = UDim2.new(x,0,1,0)
+            AimRadius = math.floor(x * 200)
+        end)
+        i.Changed:Connect(function()
+            if i.UserInputState == Enum.UserInputState.End then
+                move:Disconnect()
+            end
+        end)
+    end
+end)
+
+button("AIMBOT", 60, function() Aimbot = not Aimbot end)
+button("ĐẦU (HITBOX 5)", 100, function() Hitbox = not Hitbox end)
+button("ESP LINE", 140, function() ESP_Line = not ESP_Line end)
+button("ESP BOX", 180, function() ESP_Box = not ESP_Box end)
+button("ESP HP", 220, function() ESP_HP = not ESP_HP end)
+
+-- AIM NPC
+local function getNPC()
+    local c, d = nil, AimRadius
+    for _,m in pairs(workspace:GetChildren()) do
+        if m:FindFirstChild("Humanoid") and m:FindFirstChild("Head")
+        and not Players:GetPlayerFromCharacter(m) then
+            local p,ons = Camera:WorldToViewportPoint(m.Head.Position)
+            if ons then
+                local dist = (Vector2.new(p.X,p.Y)-Vector2.new(Mouse.X,Mouse.Y)).Magnitude
+                if dist < d then
+                    d = dist
+                    c = m
+                end
+            end
+        end
+    end
+    return c
+end
+
+RunService.RenderStepped:Connect(function()
+    local npc = getNPC()
+    if npc and npc:FindFirstChild("Head") then
+        if Hitbox then
+            npc.Head.Size = Vector3.new(5,5,5)
+            npc.Head.Transparency = 0.6
+        end
+        if Aimbot then
+            Camera.CFrame = Camera.CFrame:Lerp(
+                CFrame.new(Camera.CFrame.Position, npc.Head.Position), 0.12)
+        end
+    end
+end)
