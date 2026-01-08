@@ -1,0 +1,156 @@
+-- UI AIM TRAINING (NPC + PLAYER)
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Camera = workspace.CurrentCamera
+local LP = Players.LocalPlayer
+local Mouse = LP:GetMouse()
+
+-- SETTINGS
+local AimRadius = 100
+local Aimbot = false
+local Hitbox = false
+local ESP_Line = false
+local ESP_Box = false
+local ESP_HP = false
+
+--------------------------------------------------
+-- FOV CIRCLE
+--------------------------------------------------
+local FOV = Drawing.new("Circle")
+FOV.Color = Color3.fromRGB(0,255,0)
+FOV.Thickness = 2
+FOV.NumSides = 100
+FOV.Filled = false
+FOV.Visible = false
+
+--------------------------------------------------
+-- UI
+--------------------------------------------------
+local gui = Instance.new("ScreenGui", LP.PlayerGui)
+gui.Name = "IOSVIET_MENU"
+
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.fromOffset(260, 330)
+frame.Position = UDim2.fromScale(0.5, 0.5)
+frame.AnchorPoint = Vector2.new(0.5,0.5)
+frame.BackgroundColor3 = Color3.fromRGB(20,80,200)
+frame.BorderSizePixel = 0
+frame.Active = true
+frame.Draggable = true
+
+local function button(text,y,callback)
+    local b = Instance.new("TextButton", frame)
+    b.Size = UDim2.new(1,-20,0,35)
+    b.Position = UDim2.new(0,10,0,y)
+    b.Text = text
+    b.TextColor3 = Color3.new(1,1,1)
+    b.BackgroundColor3 = Color3.fromRGB(0,120,255)
+    b.BorderSizePixel = 0
+    b.MouseButton1Click:Connect(callback)
+end
+
+--------------------------------------------------
+-- SLIDER AIM RADIUS
+--------------------------------------------------
+local slider = Instance.new("Frame", frame)
+slider.Size = UDim2.new(1,-20,0,30)
+slider.Position = UDim2.new(0,10,0,20)
+slider.BackgroundColor3 = Color3.fromRGB(50,50,50)
+
+local bar = Instance.new("Frame", slider)
+bar.Size = UDim2.new(0.5,0,1,0)
+bar.BackgroundColor3 = Color3.fromRGB(0,255,0)
+
+slider.InputBegan:Connect(function(i)
+    if i.UserInputType == Enum.UserInputType.MouseButton1 then
+        local move
+        move = RunService.RenderStepped:Connect(function()
+            local x = math.clamp((Mouse.X - slider.AbsolutePosition.X) / slider.AbsoluteSize.X,0,1)
+            bar.Size = UDim2.new(x,0,1,0)
+            AimRadius = math.floor(x * 200)
+        end)
+        i.Changed:Connect(function()
+            if i.UserInputState == Enum.UserInputState.End then
+                move:Disconnect()
+            end
+        end)
+    end
+end)
+
+--------------------------------------------------
+-- BUTTONS
+--------------------------------------------------
+button("AIMBOT", 60, function()
+    Aimbot = not Aimbot
+    FOV.Visible = Aimbot
+end)
+
+button("HITBOX", 100, function()
+    Hitbox = not Hitbox
+end)
+
+button("ESP LINE", 140, function()
+    ESP_Line = not ESP_Line
+end)
+
+button("ESP BOX", 180, function()
+    ESP_Box = not ESP_Box
+end)
+
+button("ESP HP", 220, function()
+    ESP_HP = not ESP_HP
+end)
+
+--------------------------------------------------
+-- GET TARGET (NPC + PLAYER)
+--------------------------------------------------
+local function getTarget()
+    local closest, dist = nil, AimRadius
+
+    for _,m in pairs(workspace:GetChildren()) do
+        if m:FindFirstChild("Humanoid") and m:FindFirstChild("Head") and m ~= LP.Character then
+            local pos, ons = Camera:WorldToViewportPoint(m.Head.Position)
+            if ons then
+                local mag = (Vector2.new(pos.X,pos.Y) - Vector2.new(Mouse.X,Mouse.Y)).Magnitude
+                if mag < dist then
+                    dist = mag
+                    closest = m
+                end
+            end
+        end
+    end
+    return closest
+end
+
+--------------------------------------------------
+-- MAIN LOOP
+--------------------------------------------------
+RunService.RenderStepped:Connect(function()
+    -- Update FOV
+    FOV.Position = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
+    FOV.Radius = AimRadius
+
+    if not Aimbot then return end
+
+    local target = getTarget()
+    if target and target:FindFirstChild("Head") then
+        if Hitbox then
+            target.Head.Size = Vector3.new(5,5,5)
+            target.Head.Transparency = 0.6
+        end
+
+        Camera.CFrame = Camera.CFrame:Lerp(
+            CFrame.new(Camera.CFrame.Position, target.Head.Position), 0.12
+        )
+    end
+end)
+local UIS = game:GetService("UserInputService")
+local menuVisible = true
+
+UIS.InputBegan:Connect(function(input, gp)
+    if gp then return end
+    if input.KeyCode == Enum.KeyCode.RightShift then
+        menuVisible = not menuVisible
+        gui.Enabled = menuVisible
+    end
+end)
