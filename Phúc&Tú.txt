@@ -1,4 +1,4 @@
--- IOSVIET ALL IN ONE | FULL MERGE | FIX OPEN SCRIPT
+-- IOSVIET ALL IN ONE | FIX DELTA | MOBILE SAFE
 
 ---------------- SERVICES ----------------
 local Players = game:GetService("Players")
@@ -7,6 +7,9 @@ local UIS = game:GetService("UserInputService")
 local Lighting = game:GetService("Lighting")
 local Camera = workspace.CurrentCamera
 local LP = Players.LocalPlayer
+
+-- WAIT NHÂN VẬT SPAWN
+repeat wait() until LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
 local Mouse = LP:GetMouse()
 
 ---------------- SETTINGS ----------------
@@ -21,7 +24,7 @@ local WalkOnWater = false
 local AttackRange = 18
 local WaterPart
 
----------------- SAFE FOV (NO CRASH) ----------------
+---------------- SAFE FOV (DELTA) ----------------
 local FOV
 local DrawingOK = pcall(function()
     FOV = Drawing.new("Circle")
@@ -62,7 +65,7 @@ local function ApplyOptimize(state)
     end
 end
 
----------------- UI SAFE ----------------
+---------------- UI SAFE (DELTA) ----------------
 local gui = Instance.new("ScreenGui")
 gui.Name = "IOSVIET_MENU"
 gui.ResetOnSpawn = false
@@ -105,7 +108,7 @@ button("SKILL AIMBOT",100,function()
     if DrawingOK then FOV.Visible = AimAssist or SkillAimbot end
 end)
 
-button("AUTO ATTACK (NG + QUÁI)",140,function()
+button("AUTO ATTACK",140,function()
     AutoAttack = not AutoAttack
 end)
 
@@ -214,10 +217,7 @@ UIS.InputBegan:Connect(function(i,gp)
         MenuVisible = not MenuVisible
         frame.Visible = MenuVisible
     end
-end) Camera.ViewportSize/2
-    FOV.Radius = AimRadius
-
-    for _,m in pairs(workspace:GetChildren()) do
+end)
         if m:IsA("Model") and m:FindFirstChild("Humanoid")
         and m:FindFirstChild("Head") and m ~= LP.Character then
 
