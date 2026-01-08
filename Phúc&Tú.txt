@@ -1,4 +1,4 @@
--- IOSVIET ALL IN ONE | FULL MERGE
+-- IOSVIET ALL IN ONE | FULL MERGE | FIX OPEN SCRIPT
 
 ---------------- SERVICES ----------------
 local Players = game:GetService("Players")
@@ -14,39 +14,32 @@ local AimRadius = 130
 local AimAssist = false
 local SkillAimbot = false
 local AutoAttack = false
-local ESP_Line = false
-local ESP_HP = false
 local ESP_Name = false
-local Hitbox = false
 local Optimize = false
 local WalkOnWater = false
 
 local AttackRange = 18
-local HitboxSize = Vector3.new(6,6,6)
-local HitboxTransparency = 0.6
-
----------------- STORAGE ----------------
-local ESP_Lines = {}
-local HP_ESP = {}
-local Name_ESP = {}
-local HitboxBackup = {}
 local WaterPart
 
----------------- FOV ----------------
-local FOV = Drawing.new("Circle")
-FOV.Color = Color3.fromRGB(0,255,0)
-FOV.Thickness = 2
-FOV.NumSides = 100
-FOV.Filled = false
-FOV.Visible = false
+---------------- SAFE FOV (NO CRASH) ----------------
+local FOV
+local DrawingOK = pcall(function()
+    FOV = Drawing.new("Circle")
+end)
+
+if DrawingOK then
+    FOV.Color = Color3.fromRGB(0,255,0)
+    FOV.Thickness = 2
+    FOV.NumSides = 80
+    FOV.Filled = false
+    FOV.Visible = false
+end
 
 ---------------- FIX LAG ----------------
 local function ApplyOptimize(state)
     Optimize = state
     Lighting.GlobalShadows = not state
     Lighting.FogEnd = state and 9e9 or 1000
-    Lighting.EnvironmentDiffuseScale = state and 0 or 1
-    Lighting.EnvironmentSpecularScale = state and 0 or 1
 
     for _,v in pairs(Lighting:GetChildren()) do
         if v:IsA("PostEffect") then
@@ -55,46 +48,48 @@ local function ApplyOptimize(state)
     end
 
     for _,v in pairs(workspace:GetDescendants()) do
-        if v:IsA("BasePart") and state then
-            v.Material = Enum.Material.Plastic
-            v.Reflectance = 0
+        if v:IsA("BasePart") then
+            if state then
+                v.Material = Enum.Material.Plastic
+                v.Reflectance = 0
+            end
         elseif v:IsA("ParticleEmitter")
         or v:IsA("Trail")
-        or v:IsA("Smoke")
-        or v:IsA("Fire") then
+        or v:IsA("Fire")
+        or v:IsA("Smoke") then
             v.Enabled = not state
         end
     end
 end
 
----------------- UI ----------------
-local gui = Instance.new("ScreenGui", LP.PlayerGui)
+---------------- UI SAFE ----------------
+local gui = Instance.new("ScreenGui")
 gui.Name = "IOSVIET_MENU"
 gui.ResetOnSpawn = false
+gui.Parent = (gethui and gethui()) or LP:WaitForChild("PlayerGui")
 
 local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.fromOffset(280,460)
+frame.Size = UDim2.fromOffset(260,420)
 frame.Position = UDim2.fromScale(0.5,0.5)
 frame.AnchorPoint = Vector2.new(0.5,0.5)
-frame.BackgroundColor3 = Color3.fromRGB(20,80,200)
+frame.BackgroundColor3 = Color3.fromRGB(25,100,200)
 frame.Active = true
 frame.Draggable = true
 
 local function button(text,y,cb)
     local b = Instance.new("TextButton",frame)
-    b.Size = UDim2.new(1,-20,0,35)
+    b.Size = UDim2.new(1,-20,0,32)
     b.Position = UDim2.new(0,10,0,y)
     b.Text = text
     b.TextColor3 = Color3.new(1,1,1)
-    b.BackgroundColor3 = Color3.fromRGB(0,120,255)
+    b.BackgroundColor3 = Color3.fromRGB(0,130,255)
     b.BorderSizePixel = 0
     b.MouseButton1Click:Connect(cb)
 end
 
----------------- MENU STATE ----------------
+---------------- MENU ----------------
 local MenuVisible = true
 
----------------- BUTTONS ----------------
 button("ẨN / HIỆN MENU",20,function()
     MenuVisible = not MenuVisible
     frame.Visible = MenuVisible
@@ -102,35 +97,23 @@ end)
 
 button("AIM ASSIST",60,function()
     AimAssist = not AimAssist
-    FOV.Visible = AimAssist or SkillAimbot
+    if DrawingOK then FOV.Visible = AimAssist or SkillAimbot end
 end)
 
 button("SKILL AIMBOT",100,function()
     SkillAimbot = not SkillAimbot
-    FOV.Visible = AimAssist or SkillAimbot
+    if DrawingOK then FOV.Visible = AimAssist or SkillAimbot end
 end)
 
 button("AUTO ATTACK (NG + QUÁI)",140,function()
     AutoAttack = not AutoAttack
 end)
 
-button("HITBOX",180,function()
-    Hitbox = not Hitbox
-end)
-
-button("ESP LINE",220,function()
-    ESP_Line = not ESP_Line
-end)
-
-button("ESP HP",260,function()
-    ESP_HP = not ESP_HP
-end)
-
-button("ESP NAME",300,function()
+button("ESP NAME",180,function()
     ESP_Name = not ESP_Name
 end)
 
-button("WALK ON WATER",340,function()
+button("WALK ON WATER",220,function()
     WalkOnWater = not WalkOnWater
     if not WalkOnWater and WaterPart then
         WaterPart:Destroy()
@@ -138,7 +121,7 @@ button("WALK ON WATER",340,function()
     end
 end)
 
-button("FIX LAG + GIẢM HIỆU ỨNG",380,function()
+button("FIX LAG",260,function()
     ApplyOptimize(not Optimize)
 end)
 
@@ -179,26 +162,6 @@ local function AutoAttackTarget(t)
     end
 end
 
-local function CreateNameESP(char)
-    if Name_ESP[char] then return end
-    local head = char:FindFirstChild("Head")
-    if not head then return end
-
-    local bg = Instance.new("BillboardGui",head)
-    bg.Size = UDim2.new(4,0,1,0)
-    bg.StudsOffset = Vector3.new(0,2.5,0)
-    bg.AlwaysOnTop = true
-
-    local txt = Instance.new("TextLabel",bg)
-    txt.Size = UDim2.new(1,0,1,0)
-    txt.BackgroundTransparency = 1
-    txt.TextColor3 = Color3.new(1,1,1)
-    txt.TextScaled = true
-    txt.Text = char.Name
-
-    Name_ESP[char] = bg
-end
-
 local function UpdateWalkOnWater()
     if not WalkOnWater then return end
     local char = LP.Character
@@ -211,16 +174,47 @@ local function UpdateWalkOnWater()
         WaterPart.Anchored = true
         WaterPart.CanCollide = true
         WaterPart.Transparency = 1
-        WaterPart.Size = Vector3.new(12,1,12)
+        WaterPart.Size = Vector3.new(14,1,14)
         WaterPart.Parent = workspace
     end
-
     WaterPart.Position = hrp.Position - Vector3.new(0,3.2,0)
 end
 
 ---------------- MAIN LOOP ----------------
 RunService.RenderStepped:Connect(function()
-    FOV.Position = Camera.ViewportSize/2
+    if DrawingOK and FOV then
+        FOV.Position = Camera.ViewportSize/2
+        FOV.Radius = AimRadius
+    end
+
+    for _,m in pairs(workspace:GetChildren()) do
+        if m:IsA("Model") and m:FindFirstChild("Humanoid")
+        and m:FindFirstChild("Head") and m ~= LP.Character then
+            if AutoAttack then AutoAttackTarget(m) end
+        end
+    end
+
+    if AimAssist or SkillAimbot then
+        local t = getTarget()
+        if t then
+            Camera.CFrame = Camera.CFrame:Lerp(
+                CFrame.new(Camera.CFrame.Position, t.Head.Position),
+                SkillAimbot and 0.15 or 0.08
+            )
+        end
+    end
+
+    UpdateWalkOnWater()
+end)
+
+---------------- TOGGLE MENU ----------------
+UIS.InputBegan:Connect(function(i,gp)
+    if gp then return end
+    if i.KeyCode == Enum.KeyCode.RightShift then
+        MenuVisible = not MenuVisible
+        frame.Visible = MenuVisible
+    end
+end) Camera.ViewportSize/2
     FOV.Radius = AimRadius
 
     for _,m in pairs(workspace:GetChildren()) do
