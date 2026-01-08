@@ -5,13 +5,18 @@ local Camera = workspace.CurrentCamera
 local LP = Players.LocalPlayer
 local Mouse = LP:GetMouse()
 
+--------------------------------------------------
 -- SETTINGS
+--------------------------------------------------
 local AimRadius = 100
 local Aimbot = false
 local Hitbox = false
 local ESP_Line = false
-local ESP_Box = false
-local ESP_HP = false
+
+--------------------------------------------------
+-- ESP STORAGE
+--------------------------------------------------
+local ESP_Lines = {}
 
 --------------------------------------------------
 -- FOV CIRCLE
@@ -93,14 +98,6 @@ button("ESP LINE", 140, function()
     ESP_Line = not ESP_Line
 end)
 
-button("ESP BOX", 180, function()
-    ESP_Box = not ESP_Box
-end)
-
-button("ESP HP", 220, function()
-    ESP_HP = not ESP_HP
-end)
-
 --------------------------------------------------
 -- GET TARGET (NPC + PLAYER)
 --------------------------------------------------
@@ -126,10 +123,40 @@ end
 -- MAIN LOOP
 --------------------------------------------------
 RunService.RenderStepped:Connect(function()
-    -- Update FOV
+    -- FOV
     FOV.Position = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
     FOV.Radius = AimRadius
 
+    --------------------------------------------------
+    -- ESP LINE
+    --------------------------------------------------
+    for _,m in pairs(workspace:GetChildren()) do
+        if m:FindFirstChild("Head") and m:FindFirstChild("Humanoid") and m ~= LP.Character then
+            local pos, ons = Camera:WorldToViewportPoint(m.Head.Position)
+
+            if ons and ESP_Line then
+                if not ESP_Lines[m] then
+                    local l = Drawing.new("Line")
+                    l.Color = Color3.fromRGB(0,255,0)
+                    l.Thickness = 1.5
+                    ESP_Lines[m] = l
+                end
+
+                ESP_Lines[m].From = Vector2.new(
+                    Camera.ViewportSize.X/2,
+                    Camera.ViewportSize.Y
+                )
+                ESP_Lines[m].To = Vector2.new(pos.X, pos.Y)
+                ESP_Lines[m].Visible = true
+            elseif ESP_Lines[m] then
+                ESP_Lines[m].Visible = false
+            end
+        end
+    end
+
+    --------------------------------------------------
+    -- AIMBOT
+    --------------------------------------------------
     if not Aimbot then return end
 
     local target = getTarget()
@@ -142,15 +169,5 @@ RunService.RenderStepped:Connect(function()
         Camera.CFrame = Camera.CFrame:Lerp(
             CFrame.new(Camera.CFrame.Position, target.Head.Position), 0.12
         )
-    end
-end)
-local UIS = game:GetService("UserInputService")
-local menuVisible = true
-
-UIS.InputBegan:Connect(function(input, gp)
-    if gp then return end
-    if input.KeyCode == Enum.KeyCode.RightShift then
-        menuVisible = not menuVisible
-        gui.Enabled = menuVisible
     end
 end)
