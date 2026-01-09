@@ -1,0 +1,233 @@
+-- IOSVIET ESP FULL (NAME + BOX + LINE + HP + HITBOX) with Menu Toggle
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Camera = workspace.CurrentCamera
+local LP = Players.LocalPlayer
+
+-- ===== SETTINGS =====
+local ESP_SETTINGS = {
+    Name   = true,
+    Box    = true,
+    Line   = true,
+    HP     = true,
+    Hitbox = true
+}
+
+local ESP_COLOR = Color3.fromRGB(255, 0, 0)
+local HP_WIDTH  = 6
+local HP_OFFSET = 5
+local HITBOX_COLOR = Color3.fromRGB(0,255,255)
+
+-- Menu
+local MenuVisible = true
+
+-- GUI menu (optional)
+local gui = Instance.new("ScreenGui", LP.PlayerGui)
+gui.Name = "IOSVIET_ESP_MENU"
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.fromOffset(150, 200)
+frame.Position = UDim2.fromOffset(10, 50)
+frame.BackgroundTransparency = 0.5
+frame.BackgroundColor3 = Color3.fromRGB(30,30,30)
+frame.Visible = MenuVisible
+
+local function CreateToggleButton(name, setting)
+    local btn = Instance.new("TextButton", frame)
+    btn.Size = UDim2.new(1, -10, 0, 30)
+    btn.Position = UDim2.fromOffset(5, (#frame:GetChildren()-1)*35)
+    btn.Text = name.." : "..(setting and "ON" or "OFF")
+    btn.TextColor3 = Color3.fromRGB(255,255,255)
+    btn.BackgroundColor3 = Color3.fromRGB(50,50,50)
+    btn.MouseButton1Click:Connect(function()
+        ESP_SETTINGS[name] = not ESP_SETTINGS[name]
+        btn.Text = name.." : "..(ESP_SETTINGS[name] and "ON" or "OFF")
+    end)
+end
+
+-- Tạo nút cho từng ESP
+CreateToggleButton("Name", ESP_SETTINGS.Name)
+CreateToggleButton("Box", ESP_SETTINGS.Box)
+CreateToggleButton("Line", ESP_SETTINGS.Line)
+CreateToggleButton("HP", ESP_SETTINGS.HP)
+CreateToggleButton("Hitbox", ESP_SETTINGS.Hitbox)
+
+-- Toggle menu bằng phím X
+UserInputService.InputBegan:Connect(function(input, gpe)
+    if gpe then return end
+    if input.KeyCode == Enum.KeyCode.X then
+        MenuVisible = not MenuVisible
+        frame.Visible = MenuVisible
+    end
+end)
+
+-- ===== ESP FUNCTIONS =====
+local ESP_TABLE = {}
+
+local function CreateESP(player)
+    if player == LP then return end
+    local function onChar(char)
+        local hrp = char:WaitForChild("HumanoidRootPart",5)
+        local hum = char:WaitForChild("Humanoid",5)
+        if not hrp or not hum then return end
+
+        local data = {}
+
+        -- NAME
+        local nameGui
+        if ESP_SETTINGS.Name then
+            nameGui = Instance.new("BillboardGui", char)
+            nameGui.Name = "ESP_NAME"
+            nameGui.Adornee = hrp
+            nameGui.Size = UDim2.new(0, 200, 0, 40)
+            nameGui.StudsOffset = Vector3.new(0,3,0)
+            nameGui.AlwaysOnTop = true
+
+            local text = Instance.new("TextLabel", nameGui)
+            text.Size = UDim2.new(1,0,1,0)
+            text.BackgroundTransparency = 1
+            text.Text = player.Name
+            text.TextColor3 = ESP_COLOR
+            text.TextStrokeTransparency = 0
+            text.TextScaled = true
+        end
+        data.nameGui = nameGui
+
+        -- BOX
+        local box = Drawing.new("Square")
+        box.Thickness = 1
+        box.Color = ESP_COLOR
+        box.Filled = false
+        box.Visible = false
+        data.box = box
+
+        -- LINE
+        local line = Drawing.new("Line")
+        line.Thickness = 1
+        line.Color = ESP_COLOR
+        line.Visible = false
+        data.line = line
+
+        -- HITBOX
+        local hitbox = Drawing.new("Square")
+        hitbox.Thickness = 1
+        hitbox.Color = HITBOX_COLOR
+        hitbox.Filled = false
+        hitbox.Visible = false
+        data.hitbox = hitbox
+
+        -- HP
+        local hpBG, hpFG
+        if ESP_SETTINGS.HP then
+            hpBG = Drawing.new("Square")
+            hpBG.Thickness = 0
+            hpBG.Filled = true
+            hpBG.Color = Color3.fromRGB(50,50,50)
+            hpBG.Visible = false
+
+            hpFG = Drawing.new("Square")
+            hpFG.Thickness = 0
+            hpFG.Filled = true
+            hpFG.Color = Color3.fromRGB(0,255,0)
+            hpFG.Visible = false
+        end
+        data.hpBG = hpBG
+        data.hpFG = hpFG
+        data.hum = hum
+        data.hrp = hrp
+
+        ESP_TABLE[player] = data
+    end
+
+    if player.Character then
+        onChar(player.Character)
+    end
+    player.CharacterAdded:Connect(onChar)
+end
+
+for _, p in pairs(Players:GetPlayers()) do
+    CreateESP(p)
+end
+Players.PlayerAdded:Connect(CreateESP)
+
+-- ===== RENDER LOOP =====
+RunService.RenderStepped:Connect(function()
+    for player, data in pairs(ESP_TABLE) do
+        local hum = data.hum
+        local hrp = data.hrp
+        if not hum or hum.Health <=0 then
+            if data.box then data.box.Visible = false end
+            if data.line then data.line.Visible = false end
+            if data.hitbox then data.hitbox.Visible = false end
+            if data.hpBG then data.hpBG.Visible = false end
+            if data.hpFG then data.hpFG.Visible = false end
+        else
+            local pos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
+            if onScreen then
+                local scale = math.clamp(2000 / pos.Z, 0.5, 4)
+                local width = 40 * scale
+                local height = 60 * scale
+
+                -- BOX
+                if ESP_SETTINGS.Box and data.box then
+                    data.box.Size = Vector2.new(width, height)
+                    data.box.Position = Vector2.new(pos.X - width/2, pos.Y - height/2)
+                    data.box.Visible = true
+                else
+                    if data.box then data.box.Visible = false end
+                end
+
+                -- LINE
+                if ESP_SETTINGS.Line and data.line then
+                    data.line.From = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y)
+                    data.line.To = Vector2.new(pos.X, pos.Y)
+                    data.line.Visible = true
+                else
+                    if data.line then data.line.Visible = false end
+                end
+
+                -- HITBOX
+                if ESP_SETTINGS.Hitbox and data.hitbox then
+                    data.hitbox.Size = Vector2.new(width + 10, height + 10)
+                    data.hitbox.Position = Vector2.new(pos.X - (width+10)/2, pos.Y - (height+10)/2)
+                    data.hitbox.Visible = true
+                else
+                    if data.hitbox then data.hitbox.Visible = false end
+                end
+
+                -- HP
+                if ESP_SETTINGS.HP and data.hpBG and data.hpFG then
+                    local percent = hum.Health / hum.MaxHealth
+                    local barHeight = height
+                    local barX = pos.X + width/2 + HP_OFFSET
+                    local barY = pos.Y - height/2
+
+                    data.hpBG.Position = Vector2.new(barX, barY)
+                    data.hpBG.Size = Vector2.new(HP_WIDTH, barHeight)
+                    data.hpBG.Visible = true
+
+                    data.hpFG.Position = Vector2.new(barX, barY + barHeight*(1-percent))
+                    data.hpFG.Size = Vector2.new(HP_WIDTH, barHeight*percent)
+                    if percent > 0.6 then
+                        data.hpFG.Color = Color3.fromRGB(0,255,0)
+                    elseif percent > 0.3 then
+                        data.hpFG.Color = Color3.fromRGB(255,170,0)
+                    else
+                        data.hpFG.Color = Color3.fromRGB(255,0,0)
+                    end
+                    data.hpFG.Visible = true
+                else
+                    if data.hpBG then data.hpBG.Visible = false end
+                    if data.hpFG then data.hpFG.Visible = false end
+                end
+            else
+                if data.box then data.box.Visible = false end
+                if data.line then data.line.Visible = false end
+                if data.hitbox then data.hitbox.Visible = false end
+                if data.hpBG then data.hpBG.Visible = false end
+                if data.hpFG then data.hpFG.Visible = false end
+            end
+        end
+    end
+end)
