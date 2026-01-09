@@ -1,0 +1,181 @@
+-- IOSVIET FULL ESP + AIMBOT + AIM RADIUS MENU ALL IN ONE
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UIS = game:GetService("UserInputService")
+local Camera = workspace.CurrentCamera
+local LP = Players.LocalPlayer
+
+-- ===== SETTINGS =====
+local ESP_ON = true
+local AIMBOT_ON = false
+local SHOW_FOV = true
+local AIM_RADIUS = 120
+local AIM_SMOOTH = 0.15
+
+-- ===== UI =====
+local gui = Instance.new("ScreenGui", LP.PlayerGui)
+gui.Name = "IOSVIET_MENU"
+
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0,180,0,380)
+frame.Position = UDim2.new(0,20,0.35,0)
+frame.BackgroundColor3 = Color3.fromRGB(30,30,30)
+frame.BorderSizePixel = 0
+frame.Active = true
+frame.Draggable = true
+
+local function makeBtn(text,posY)
+    local b = Instance.new("TextButton", frame)
+    b.Size = UDim2.new(1,-10,0,35)
+    b.Position = UDim2.new(0,5,0,posY)
+    b.Text = text
+    b.BackgroundColor3 = Color3.fromRGB(60,60,60)
+    b.TextColor3 = Color3.new(1,1,1)
+    b.BorderSizePixel = 0
+    return b
+end
+
+local espBtn = makeBtn("ESP : ON",10)
+local aimBtn = makeBtn("AIMBOT : OFF",50)
+local fovBtn = makeBtn("FOV : ON",90)
+local radiusPlus = makeBtn("RADIUS +",130)
+local radiusMinus = makeBtn("RADIUS -",170)
+local radiusTxt = makeBtn("RADIUS : "..AIM_RADIUS,210)
+
+-- ===== BUTTON CALLBACKS =====
+espBtn.MouseButton1Click:Connect(function()
+    ESP_ON = not ESP_ON
+    espBtn.Text = "ESP : "..(ESP_ON and "ON" or "OFF")
+end)
+
+aimBtn.MouseButton1Click:Connect(function()
+    AIMBOT_ON = not AIMBOT_ON
+    aimBtn.Text = "AIMBOT : "..(AIMBOT_ON and "ON" or "OFF")
+end)
+
+fovBtn.MouseButton1Click:Connect(function()
+    SHOW_FOV = not SHOW_FOV
+    fovBtn.Text = "FOV : "..(SHOW_FOV and "ON" or "OFF")
+end)
+
+radiusPlus.MouseButton1Click:Connect(function()
+    AIM_RADIUS = math.clamp(AIM_RADIUS + 50,0,1000)
+    radiusTxt.Text = "RADIUS : "..AIM_RADIUS
+end)
+
+radiusMinus.MouseButton1Click:Connect(function()
+    AIM_RADIUS = math.clamp(AIM_RADIUS - 50,0,1000)
+    radiusTxt.Text = "RADIUS : "..AIM_RADIUS
+end)
+
+-- ===== FOV CIRCLE =====
+local fovCircle = Drawing.new("Circle")
+fovCircle.Thickness = 1
+fovCircle.NumSides = 64
+fovCircle.Color = Color3.fromRGB(255,255,255)
+fovCircle.Filled = false
+
+-- ===== AIMBOT =====
+local function getClosest()
+    local closest, dist = nil, AIM_RADIUS
+    for _,p in pairs(Players:GetPlayers()) do
+        if p ~= LP and p.Character and p.Character:FindFirstChild("Head") then
+            local hum = p.Character:FindFirstChild("Humanoid")
+            if hum and hum.Health > 0 then
+                local pos,on = Camera:WorldToViewportPoint(p.Character.Head.Position)
+                if on then
+                    local d = (Vector2.new(pos.X,pos.Y)
+                    - Vector2.new(Camera.ViewportSize.X/2,Camera.ViewportSize.Y/2)).Magnitude
+                    if d < dist then
+                        dist = d
+                        closest = p.Character.Head
+                    end
+                end
+            end
+        end
+    end
+    return closest
+end
+
+-- ===== ESP =====
+local ESP = {}
+
+local function createESP(plr)
+    if plr == LP then return end
+    ESP[plr] = {
+        box = Drawing.new("Square"),
+        line = Drawing.new("Line"),
+        hpbg = Drawing.new("Square"),
+        hpfg = Drawing.new("Square")
+    }
+
+    local e = ESP[plr]
+    e.box.Thickness = 1
+    e.box.Filled = false
+    e.box.Color = Color3.fromRGB(255,0,0)
+
+    e.line.Thickness = 1
+    e.line.Color = Color3.fromRGB(255,0,0)
+
+    e.hpbg.Filled = true
+    e.hpbg.Color = Color3.fromRGB(40,40,40)
+    e.hpfg.Filled = true
+end
+
+for _,p in pairs(Players:GetPlayers()) do createESP(p) end
+Players.PlayerAdded:Connect(createESP)
+
+-- ===== MAIN LOOP =====
+RunService.RenderStepped:Connect(function()
+    -- FOV
+    fovCircle.Position = Vector2.new(Camera.ViewportSize.X/2,Camera.ViewportSize.Y/2)
+    fovCircle.Radius = AIM_RADIUS
+    fovCircle.Visible = SHOW_FOV and AIMBOT_ON
+
+    -- AIMBOT
+    if AIMBOT_ON and UIS:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
+        local t = getClosest()
+        if t then
+            Camera.CFrame = Camera.CFrame:Lerp(
+                CFrame.new(Camera.CFrame.Position, t.Position),
+                AIM_SMOOTH
+            )
+        end
+    end
+
+    -- ESP
+    for plr,e in pairs(ESP) do
+        if ESP_ON and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+            local hum = plr.Character:FindFirstChild("Humanoid")
+            if hum and hum.Health > 0 then
+                local hrp = plr.Character.HumanoidRootPart
+                local pos,on = Camera:WorldToViewportPoint(hrp.Position)
+                if on then
+                    local w,h = 40,60
+                    e.box.Size = Vector2.new(w,h)
+                    e.box.Position = Vector2.new(pos.X-w/2,pos.Y-h/2)
+                    e.box.Visible = true
+
+                    e.line.From = Vector2.new(Camera.ViewportSize.X/2,Camera.ViewportSize.Y)
+                    e.line.To = Vector2.new(pos.X,pos.Y)
+                    e.line.Visible = true
+
+                    local hp = hum.Health/hum.MaxHealth
+                    e.hpbg.Size = Vector2.new(5,h)
+                    e.hpbg.Position = Vector2.new(pos.X+w/2+4,pos.Y-h/2)
+                    e.hpbg.Visible = true
+
+                    e.hpfg.Size = Vector2.new(5,h*hp)
+                    e.hpfg.Position = Vector2.new(pos.X+w/2+4,pos.Y-h/2 + h*(1-hp))
+                    e.hpfg.Color = hp>0.6 and Color3.fromRGB(0,255,0)
+                        or hp>0.3 and Color3.fromRGB(255,170,0)
+                        or Color3.fromRGB(255,0,0)
+                    e.hpfg.Visible = true
+                end
+            end
+        else
+            for _,d in pairs(e) do d.Visible = false end
+        end
+    end
+end)
