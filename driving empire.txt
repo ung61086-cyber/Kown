@@ -1,0 +1,96 @@
+-- DRIVING EMPIRE TRAINING MENU (SAFE / LOCAL)
+-- By ChatGPT
+
+local Players = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local plr = Players.LocalPlayer
+
+-- UI
+local gui = Instance.new("ScreenGui", plr.PlayerGui)
+gui.Name = "DE_Menu"
+
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.fromOffset(260, 320)
+frame.Position = UDim2.fromScale(0.05, 0.3)
+frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
+frame.BorderSizePixel = 0
+frame.Active = true
+frame.Draggable = true
+
+local title = Instance.new("TextLabel", frame)
+title.Size = UDim2.new(1,0,0,30)
+title.Text = "Driving Empire - Menu"
+title.TextColor3 = Color3.new(1,1,1)
+title.BackgroundColor3 = Color3.fromRGB(30,30,30)
+
+local function newBtn(txt, y)
+	local b = Instance.new("TextButton", frame)
+	b.Size = UDim2.new(1,-20,0,32)
+	b.Position = UDim2.fromOffset(10, y)
+	b.Text = txt
+	b.BackgroundColor3 = Color3.fromRGB(50,50,50)
+	b.TextColor3 = Color3.new(1,1,1)
+	return b
+end
+
+local fakeMoney = 0
+local autoFarm = false
+local speedOn = false
+
+local moneyLabel = Instance.new("TextLabel", frame)
+moneyLabel.Size = UDim2.new(1,-20,0,30)
+moneyLabel.Position = UDim2.fromOffset(10, 40)
+moneyLabel.Text = "Money: $0"
+moneyLabel.TextColor3 = Color3.new(0,1,0)
+moneyLabel.BackgroundTransparency = 1
+
+local bMoney = newBtn("Toggle Infinite Money (Fake)", 80)
+local bFarm  = newBtn("Toggle Auto Farm (Local)", 120)
+local bSpeed = newBtn("Toggle Speed Boost", 160)
+local bTP    = newBtn("Teleport Forward", 200)
+local bHide  = newBtn("Hide / Show Menu (H)", 240)
+
+bMoney.MouseButton1Click:Connect(function()
+	fakeMoney = fakeMoney + 1000000
+	moneyLabel.Text = "Money: $"..fakeMoney
+end)
+
+bFarm.MouseButton1Click:Connect(function()
+	autoFarm = not autoFarm
+	bFarm.Text = autoFarm and "Auto Farm: ON" or "Auto Farm: OFF"
+end)
+
+bSpeed.MouseButton1Click:Connect(function()
+	speedOn = not speedOn
+	bSpeed.Text = speedOn and "Speed: ON" or "Speed: OFF"
+end)
+
+bTP.MouseButton1Click:Connect(function()
+	local c = plr.Character
+	if c and c:FindFirstChild("HumanoidRootPart") then
+		c.HumanoidRootPart.CFrame *= CFrame.new(0,0,-100)
+	end
+end)
+
+UIS.InputBegan:Connect(function(k,gp)
+	if gp then return end
+	if k.KeyCode == Enum.KeyCode.H then
+		frame.Visible = not frame.Visible
+	end
+end)
+
+-- Loop
+RunService.RenderStepped:Connect(function()
+	if autoFarm then
+		fakeMoney += 50
+		moneyLabel.Text = "Money: $"..fakeMoney
+	end
+
+	if speedOn then
+		local c = plr.Character
+		if c and c:FindFirstChild("Humanoid") then
+			c.Humanoid.WalkSpeed = 60
+		end
+	end
+end)
