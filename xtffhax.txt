@@ -1,4 +1,4 @@
--- IOSVIET UI DEMO (STUDIO / MAP RIENG)
+-- IOSVIET DEMO UI (SAFE EXECUTOR VERSION)
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -11,42 +11,56 @@ local S = {
 	Radius=250
 }
 
-local gui = Instance.new("ScreenGui", LP:WaitForChild("PlayerGui"))
+-- GUI
+local gui = Instance.new("ScreenGui")
 gui.Name = "iosviet_demo"
-gui.ResetOnSpawn = false
+pcall(function() gui.Parent = LP:WaitForChild("PlayerGui") end)
+if not gui.Parent then gui.Parent = game:GetService("CoreGui") end
 
--- NÚT TRÒN MỞ MENU
+-- Floating open button
 local openBtn = Instance.new("TextButton", gui)
-openBtn.Size = UDim2.fromOffset(60,60)
-openBtn.Position = UDim2.fromScale(0.03,0.6)
-openBtn.Text = "XTF"
-openBtn.BackgroundColor3 = Color3.fromRGB(0,150,255)
+openBtn.Size = UDim2.fromOffset(48,48)
+openBtn.Position = UDim2.fromScale(0.02,0.5)
+openBtn.Text = "≡"
+openBtn.BackgroundColor3 = Color3.fromRGB(40,120,255)
 openBtn.TextColor3 = Color3.new(1,1,1)
 Instance.new("UICorner", openBtn).CornerRadius = UDim.new(1,0)
 
--- FRAME MENU
+-- Main frame
 local frame = Instance.new("Frame", gui)
 frame.Size = UDim2.fromOffset(420,260)
-frame.Position = UDim2.fromScale(.18,.35)
+frame.Position = UDim2.fromScale(0.18,0.35)
 frame.BackgroundColor3 = Color3.fromRGB(20,20,30)
 frame.Visible = false
-Instance.new("UICorner", frame).CornerRadius = UDim.new(0,12)
+Instance.new("UICorner", frame)
 
--- NÚT X
+-- Close X
 local closeBtn = Instance.new("TextButton", frame)
-closeBtn.Size = UDim2.fromOffset(30,30)
-closeBtn.Position = UDim2.fromOffset(380,10)
+closeBtn.Size = UDim2.fromOffset(28,28)
+closeBtn.Position = UDim2.fromOffset(380,8)
 closeBtn.Text = "X"
-closeBtn.BackgroundColor3 = Color3.fromRGB(40,40,50)
+closeBtn.BackgroundColor3 = Color3.fromRGB(60,60,70)
 closeBtn.TextColor3 = Color3.new(1,1,1)
 
--- CỘT TRÁI
+-- Left tabs
 local left = Instance.new("Frame", frame)
 left.Size = UDim2.fromOffset(120,240)
 left.Position = UDim2.fromOffset(10,10)
 left.BackgroundTransparency = 1
 
--- TRANG PHẢI
+local tabPlayer = Instance.new("TextButton", left)
+tabPlayer.Size = UDim2.fromOffset(110,40)
+tabPlayer.Text = "PLAYER"
+tabPlayer.BackgroundColor3 = Color3.fromRGB(40,120,255)
+tabPlayer.TextColor3 = Color3.new(1,1,1)
+
+local tabAim = Instance.new("TextButton", left)
+tabAim.Size = UDim2.fromOffset(110,40)
+tabAim.Position = UDim2.fromOffset(0,50)
+tabAim.Text = "AIM"
+tabAim.BackgroundColor3 = Color3.fromRGB(240,240,240)
+
+-- Page
 local page = Instance.new("Frame", frame)
 page.Size = UDim2.fromOffset(260,240)
 page.Position = UDim2.fromOffset(150,10)
@@ -65,21 +79,13 @@ local function mkToggle(text, y, key)
 	b.Text = text.." : OFF"
 	b.BackgroundColor3 = Color3.fromRGB(60,60,70)
 	b.TextColor3 = Color3.new(1,1,1)
-	Instance.new("UICorner", b).CornerRadius = UDim.new(0,8)
-
 	b.MouseButton1Click:Connect(function()
 		S[key] = not S[key]
 		b.Text = text.." : "..(S[key] and "ON" or "OFF")
 	end)
 end
 
--- TAB PLAYER
-local tabPlayer = Instance.new("TextButton", left)
-tabPlayer.Size = UDim2.fromOffset(110,40)
-tabPlayer.Text = "PLAYER"
-tabPlayer.BackgroundColor3 = Color3.fromRGB(40,120,255)
-tabPlayer.TextColor3 = Color3.new(1,1,1)
-
+-- PLAYER TAB
 local function showPlayer()
 	clear()
 	mkToggle("ESP Name",0,"Name")
@@ -89,19 +95,11 @@ local function showPlayer()
 	mkToggle("Alert 360",160,"Alert")
 end
 
-tabPlayer.MouseButton1Click:Connect(showPlayer)
-
--- TAB AIM
-local tabAim = Instance.new("TextButton", left)
-tabAim.Size = UDim2.fromOffset(110,40)
-tabAim.Position = UDim2.fromOffset(0,50)
-tabAim.Text = "AIM"
-tabAim.BackgroundColor3 = Color3.fromRGB(240,240,240)
-
--- VÒNG RADIUS
+-- AIM TAB
 local circle = Instance.new("Frame", gui)
-circle.AnchorPoint = Vector2.new(.5,.5)
-circle.Position = UDim2.fromScale(.5,.5)
+circle.AnchorPoint = Vector2.new(0.5,0.5)
+circle.Position = UDim2.fromScale(0.5,0.5)
+circle.Size = UDim2.fromOffset(S.Radius*2, S.Radius*2)
 circle.BackgroundTransparency = 1
 circle.Visible = false
 Instance.new("UICorner", circle).CornerRadius = UDim.new(1,0)
@@ -132,29 +130,27 @@ local function showAim()
 	fill.Size = UDim2.fromScale(S.Radius/1000,1)
 
 	bar.InputBegan:Connect(function(i)
-		if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
-			local con
-			con = UIS.InputChanged:Connect(function(inp)
-				if inp.UserInputType == Enum.UserInputType.MouseMovement or inp.UserInputType == Enum.UserInputType.Touch then
-					local x = math.clamp((inp.Position.X - bar.AbsolutePosition.X)/bar.AbsoluteSize.X,0,1)
+		if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then
+			local con; con = UIS.InputChanged:Connect(function(inp)
+				if inp.UserInputType==Enum.UserInputType.MouseMovement or inp.UserInputType==Enum.UserInputType.Touch then
+					local x = math.clamp((inp.Position.X-bar.AbsolutePosition.X)/bar.AbsoluteSize.X,0,1)
 					S.Radius = math.floor(1000*x)
 					fill.Size = UDim2.fromScale(x,1)
 					lab.Text = "Radius: "..S.Radius
+					circle.Size = UDim2.fromOffset(S.Radius*2, S.Radius*2)
 				end
 			end)
-			UIS.InputEnded:Once(function()
-				if con then con:Disconnect() end
-			end)
+			UIS.InputEnded:Once(function() if con then con:Disconnect() end end)
 		end
 	end)
 end
 
+tabPlayer.MouseButton1Click:Connect(showPlayer)
 tabAim.MouseButton1Click:Connect(showAim)
 
 openBtn.MouseButton1Click:Connect(function()
 	frame.Visible = true
 end)
-
 closeBtn.MouseButton1Click:Connect(function()
 	frame.Visible = false
 end)
@@ -162,7 +158,6 @@ end)
 showPlayer()
 
 RunService.RenderStepped:Connect(function()
-	circle.Size = UDim2.fromOffset(S.Radius*2, S.Radius*2)
-	circle.Position = UDim2.fromScale(.5,.5)
+	circle.Position = UDim2.fromScale(0.5,0.5)
 	circle.Visible = S.Aimbot and not S.HideBot
 end)
