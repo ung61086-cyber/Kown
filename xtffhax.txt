@@ -1,169 +1,58 @@
--- IOSVIET ESP FULL (Name + Box + Line + HP + Hitbox + Hide Menu)
+-- HIỂN THỊ SỐ NGƯỜI CHƠI
+local countLabel = Instance.new("TextLabel", gui)
+countLabel.Size = UDim2.fromOffset(200, 28)
+countLabel.Position = UDim2.new(0.5, -100, 0, 6)
+countLabel.BackgroundTransparency = 0.3
+countLabel.BackgroundColor3 = Color3.fromRGB(20,20,20)
+countLabel.TextColor3 = Color3.new(1,1,1)
+countLabel.Font = Enum.Font.GothamBold
+countLabel.TextScaled = true
+countLabel.BorderSizePixel = 0
 
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local UIS = game:GetService("UserInputService")
-local Camera = workspace.CurrentCamera
-local LP = Players.LocalPlayer
-
--- ===== SETTINGS =====
-local ESP_SETTINGS = {
-    Name   = true,
-    Box    = true,
-    Line   = true,
-    HP     = true,
-    Hitbox = true
-}
-
-local ESP_COLOR = Color3.fromRGB(255,0,0)
-local HITBOX_COLOR = Color3.fromRGB(0,255,255)
-local HP_WIDTH = 6
-local HP_OFFSET = 5
-
--- ===== GUI =====
-local gui = Instance.new("ScreenGui", LP.PlayerGui)
-gui.Name = "IOSVIET_MENU"
-gui.ResetOnSpawn = false
-
-local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.fromOffset(180, 230)
-frame.Position = UDim2.fromOffset(20, 80)
-frame.BackgroundColor3 = Color3.fromRGB(30,30,30)
-frame.BorderSizePixel = 0
-
--- Title
-local title = Instance.new("TextLabel", frame)
-title.Size = UDim2.new(1,0,0,32)
-title.BackgroundTransparency = 1
-title.Text = "IOSVIET ESP"
-title.TextColor3 = Color3.new(1,1,1)
-title.Font = Enum.Font.GothamBold
-title.TextScaled = true
-
--- Close X
-local closeBtn = Instance.new("TextButton", frame)
-closeBtn.Size = UDim2.fromOffset(26,26)
-closeBtn.Position = UDim2.new(1,-30,0,4)
-closeBtn.Text = "✕"
-closeBtn.Font = Enum.Font.GothamBold
-closeBtn.TextScaled = true
-closeBtn.BackgroundTransparency = 1
-closeBtn.TextColor3 = Color3.new(1,1,1)
-
--- Open Logo
+-- NÚT LOGO MỞ MENU
 local openBtn = Instance.new("ImageButton", gui)
-openBtn.Size = UDim2.fromOffset(48,48)
-openBtn.Position = UDim2.fromOffset(20, 120)
+openBtn.Size = UDim2.fromOffset(60,60)
+openBtn.Position = UDim2.new(0,10,0.5,-30)
 openBtn.BackgroundTransparency = 1
+openBtn.Image = "rbxassetid://PUT_ID_LOGO_TAI_DAY" -- thay ID ảnh của bạn
 openBtn.Visible = false
-openBtn.Image = "rbxassetid://1234567890" -- đổi thành logo của bạn
+openBtn.Active = true
+openBtn.Draggable = true
 
-local function CreateToggle(text, y, key)
-    local b = Instance.new("TextButton", frame)
-    b.Size = UDim2.new(1,-16,0,30)
-    b.Position = UDim2.new(0,8,0,y)
-    b.Text = text..": ON"
-    b.TextColor3 = Color3.new(1,1,1)
-    b.BackgroundColor3 = Color3.fromRGB(60,60,60)
-    b.BorderSizePixel = 0
-    b.MouseButton1Click:Connect(function()
-        ESP_SETTINGS[key] = not ESP_SETTINGS[key]
-        b.Text = text..": "..(ESP_SETTINGS[key] and "ON" or "OFF")
-    end)
-end
+local menuVisible = true
 
-CreateToggle("NAME", 40, "Name")
-CreateToggle("BOX", 75, "Box")
-CreateToggle("LINE", 110, "Line")
-CreateToggle("HP", 145, "HP")
-CreateToggle("HITBOX", 180, "Hitbox")
-
-closeBtn.MouseButton1Click:Connect(function()
-    frame.Visible = false
-    openBtn.Visible = true
+-- PHÍM X ẨN / HIỆN MENU
+UIS.InputBegan:Connect(function(input, gpe)
+    if gpe then return end
+    if input.KeyCode == Enum.KeyCode.X then
+        menuVisible = not menuVisible
+        frame.Visible = menuVisible
+        openBtn.Visible = not menuVisible
+    end
 end)
 
 openBtn.MouseButton1Click:Connect(function()
+    menuVisible = true
     frame.Visible = true
     openBtn.Visible = false
 end)
 
--- ===== ESP CORE =====
-local ESP_TABLE = {}
-
-local function SetupPlayer(plr)
-    if plr == LP then return end
-
-    local function onChar(char)
-        local hrp = char:WaitForChild("HumanoidRootPart",5)
-        local hum = char:WaitForChild("Humanoid",5)
-        if not hrp or not hum then return end
-
-        local data = {hrp = hrp, hum = hum}
-
-        -- Name
-        local nameGui = Instance.new("BillboardGui", char)
-        nameGui.Size = UDim2.new(0,200,0,40)
-        nameGui.StudsOffset = Vector3.new(0,3,0)
-        nameGui.AlwaysOnTop = true
-        local txt = Instance.new("TextLabel", nameGui)
-        txt.Size = UDim2.new(1,0,1,0)
-        txt.BackgroundTransparency = 1
-        txt.Text = plr.Name
-        txt.TextColor3 = ESP_COLOR
-        txt.TextStrokeTransparency = 0
-        txt.TextScaled = true
-        data.nameGui = nameGui
-
-        data.box = Drawing.new("Square")
-        data.box.Color = ESP_COLOR
-        data.box.Filled = false
-        data.box.Thickness = 1
-
-        data.line = Drawing.new("Line")
-        data.line.Color = ESP_COLOR
-        data.line.Thickness = 1
-
-        data.hitbox = Drawing.new("Square")
-        data.hitbox.Color = HITBOX_COLOR
-        data.hitbox.Filled = false
-
-        data.hpBG = Drawing.new("Square")
-        data.hpBG.Filled = true
-        data.hpBG.Color = Color3.fromRGB(40,40,40)
-
-        data.hpFG = Drawing.new("Square")
-        data.hpFG.Filled = true
-        data.hpFG.Color = Color3.fromRGB(0,255,0)
-
-        ESP_TABLE[plr] = data
-    end
-
-    if plr.Character then onChar(plr.Character) end
-    plr.CharacterAdded:Connect(onChar)
-end
-
-for _,p in pairs(Players:GetPlayers()) do
-    SetupPlayer(p)
-end
-Players.PlayerAdded:Connect(SetupPlayer)
-
+-- ESP + PLAYER COUNT (CHỈ 1 RenderStepped)
 RunService.RenderStepped:Connect(function()
+    countLabel.Text = "Players: "..#Players:GetPlayers()
+
     for plr,data in pairs(ESP_TABLE) do
         local hum = data.hum
         local hrp = data.hrp
         if hum and hum.Health > 0 then
             local pos, on = Camera:WorldToViewportPoint(hrp.Position)
             if on then
-                local scale = math.clamp(2000 / pos.Z, 0.6, 4)
-                local w = 40 * scale
-                local h = 60 * scale
+                -- SCALE NHỎ
+                local scale = math.clamp(900 / pos.Z, 0.3, 1.5)
+                local w = 18 * scale
+                local h = 30 * scale
 
-                if ESP_SETTINGS.Name then
-                    data.nameGui.Enabled = true
-                else
-                    data.nameGui.Enabled = false
-                end
+                data.nameGui.Enabled = ESP_SETTINGS.Name
 
                 if ESP_SETTINGS.Box then
                     data.box.Size = Vector2.new(w,h)
@@ -178,8 +67,8 @@ RunService.RenderStepped:Connect(function()
                 else data.line.Visible = false end
 
                 if ESP_SETTINGS.Hitbox then
-                    data.hitbox.Size = Vector2.new(w+10,h+10)
-                    data.hitbox.Position = Vector2.new(pos.X-(w+10)/2, pos.Y-(h+10)/2)
+                    data.hitbox.Size = Vector2.new(w+6,h+6)
+                    data.hitbox.Position = Vector2.new(pos.X-(w+6)/2, pos.Y-(h+6)/2)
                     data.hitbox.Visible = true
                 else data.hitbox.Visible = false end
 
@@ -197,6 +86,12 @@ RunService.RenderStepped:Connect(function()
                     data.hpBG.Visible = false
                     data.hpFG.Visible = false
                 end
+            else
+                data.box.Visible = false
+                data.line.Visible = false
+                data.hitbox.Visible = false
+                data.hpBG.Visible = false
+                data.hpFG.Visible = false
             end
         end
     end
