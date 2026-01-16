@@ -1,34 +1,109 @@
--- HIỂN THỊ SỐ NGƯỜI CHƠI
+-- UI DEMO (KHÔNG CAN THIỆP GAME)
+
+local Players = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local LP = Players.LocalPlayer
+
+-- GUI
+local gui = Instance.new("ScreenGui", LP.PlayerGui)
+gui.Name = "UI_DEMO"
+gui.ResetOnSpawn = false
+
+-- MENU FRAME
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.fromOffset(200, 240)
+frame.Position = UDim2.fromOffset(20, 80)
+frame.BackgroundColor3 = Color3.fromRGB(30,30,30)
+frame.BorderSizePixel = 0
+
+-- TITLE
+local title = Instance.new("TextLabel", frame)
+title.Size = UDim2.new(1,0,0,32)
+title.BackgroundTransparency = 1
+title.Text = "IOSVIET MENU"
+title.TextColor3 = Color3.new(1,1,1)
+title.Font = Enum.Font.GothamBold
+title.TextScaled = true
+
+-- CLOSE X
+local closeBtn = Instance.new("TextButton", frame)
+closeBtn.Size = UDim2.fromOffset(26,26)
+closeBtn.Position = UDim2.new(1,-30,0,4)
+closeBtn.Text = "✕"
+closeBtn.Font = Enum.Font.GothamBold
+closeBtn.TextScaled = true
+closeBtn.BackgroundTransparency = 1
+closeBtn.TextColor3 = Color3.new(1,1,1)
+
+-- LOGO OPEN
+local openBtn = Instance.new("ImageButton", gui)
+openBtn.Size = UDim2.fromOffset(56,56)
+openBtn.Position = UDim2.new(0,10,0.5,-28)
+openBtn.BackgroundTransparency = 1
+openBtn.Image = "rbxassetid://1234567890" -- đổi ID ảnh của bạn
+openBtn.Visible = false
+openBtn.Active = true
+openBtn.Draggable = true
+
+-- TOGGLE DATA
+local STATES = {
+    NAME = true,
+    BOX = true,
+    LINE = true,
+    HP = true,
+    HITBOX = true
+}
+
+local function CreateToggle(text, y, key)
+    local b = Instance.new("TextButton", frame)
+    b.Size = UDim2.new(1,-16,0,30)
+    b.Position = UDim2.new(0,8,0,y)
+    b.BackgroundColor3 = Color3.fromRGB(60,60,60)
+    b.BorderSizePixel = 0
+    b.TextColor3 = Color3.new(1,1,1)
+    b.Font = Enum.Font.Gotham
+    b.TextScaled = true
+
+    local function refresh()
+        b.Text = text..": "..(STATES[key] and "ON" or "OFF")
+    end
+    refresh()
+
+    b.MouseButton1Click:Connect(function()
+        STATES[key] = not STATES[key]
+        refresh()
+    end)
+end
+
+CreateToggle("NAME", 40, "NAME")
+CreateToggle("BOX", 75, "BOX")
+CreateToggle("LINE", 110, "LINE")
+CreateToggle("HP", 145, "HP")
+CreateToggle("HITBOX", 180, "HITBOX")
+
+-- PLAYER COUNT TOP
 local countLabel = Instance.new("TextLabel", gui)
 countLabel.Size = UDim2.fromOffset(200, 28)
 countLabel.Position = UDim2.new(0.5, -100, 0, 6)
-countLabel.BackgroundTransparency = 0.3
+countLabel.BackgroundTransparency = 0.2
 countLabel.BackgroundColor3 = Color3.fromRGB(20,20,20)
 countLabel.TextColor3 = Color3.new(1,1,1)
 countLabel.Font = Enum.Font.GothamBold
 countLabel.TextScaled = true
 countLabel.BorderSizePixel = 0
 
--- NÚT LOGO MỞ MENU
-local openBtn = Instance.new("ImageButton", gui)
-openBtn.Size = UDim2.fromOffset(60,60)
-openBtn.Position = UDim2.new(0,10,0.5,-30)
-openBtn.BackgroundTransparency = 1
-openBtn.Image = "rbxassetid://PUT_ID_LOGO_TAI_DAY" -- thay ID ảnh của bạn
-openBtn.Visible = false
-openBtn.Active = true
-openBtn.Draggable = true
+RunService.RenderStepped:Connect(function()
+    countLabel.Text = "Players: "..#Players:GetPlayers()
+end)
 
+-- MENU TOGGLE
 local menuVisible = true
 
--- PHÍM X ẨN / HIỆN MENU
-UIS.InputBegan:Connect(function(input, gpe)
-    if gpe then return end
-    if input.KeyCode == Enum.KeyCode.X then
-        menuVisible = not menuVisible
-        frame.Visible = menuVisible
-        openBtn.Visible = not menuVisible
-    end
+closeBtn.MouseButton1Click:Connect(function()
+    menuVisible = false
+    frame.Visible = false
+    openBtn.Visible = true
 end)
 
 openBtn.MouseButton1Click:Connect(function()
@@ -37,62 +112,11 @@ openBtn.MouseButton1Click:Connect(function()
     openBtn.Visible = false
 end)
 
--- ESP + PLAYER COUNT (CHỈ 1 RenderStepped)
-RunService.RenderStepped:Connect(function()
-    countLabel.Text = "Players: "..#Players:GetPlayers()
-
-    for plr,data in pairs(ESP_TABLE) do
-        local hum = data.hum
-        local hrp = data.hrp
-        if hum and hum.Health > 0 then
-            local pos, on = Camera:WorldToViewportPoint(hrp.Position)
-            if on then
-                -- SCALE NHỎ
-                local scale = math.clamp(900 / pos.Z, 0.3, 1.5)
-                local w = 18 * scale
-                local h = 30 * scale
-
-                data.nameGui.Enabled = ESP_SETTINGS.Name
-
-                if ESP_SETTINGS.Box then
-                    data.box.Size = Vector2.new(w,h)
-                    data.box.Position = Vector2.new(pos.X-w/2, pos.Y-h/2)
-                    data.box.Visible = true
-                else data.box.Visible = false end
-
-                if ESP_SETTINGS.Line then
-                    data.line.From = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y)
-                    data.line.To = Vector2.new(pos.X,pos.Y)
-                    data.line.Visible = true
-                else data.line.Visible = false end
-
-                if ESP_SETTINGS.Hitbox then
-                    data.hitbox.Size = Vector2.new(w+6,h+6)
-                    data.hitbox.Position = Vector2.new(pos.X-(w+6)/2, pos.Y-(h+6)/2)
-                    data.hitbox.Visible = true
-                else data.hitbox.Visible = false end
-
-                if ESP_SETTINGS.HP then
-                    local p = hum.Health/hum.MaxHealth
-                    local barX = pos.X + w/2 + HP_OFFSET
-                    local barY = pos.Y - h/2
-                    data.hpBG.Position = Vector2.new(barX, barY)
-                    data.hpBG.Size = Vector2.new(HP_WIDTH, h)
-                    data.hpFG.Position = Vector2.new(barX, barY + h*(1-p))
-                    data.hpFG.Size = Vector2.new(HP_WIDTH, h*p)
-                    data.hpBG.Visible = true
-                    data.hpFG.Visible = true
-                else
-                    data.hpBG.Visible = false
-                    data.hpFG.Visible = false
-                end
-            else
-                data.box.Visible = false
-                data.line.Visible = false
-                data.hitbox.Visible = false
-                data.hpBG.Visible = false
-                data.hpFG.Visible = false
-            end
-        end
+UIS.InputBegan:Connect(function(input, gpe)
+    if gpe then return end
+    if input.KeyCode == Enum.KeyCode.X then
+        menuVisible = not menuVisible
+        frame.Visible = menuVisible
+        openBtn.Visible = not menuVisible
     end
 end)
