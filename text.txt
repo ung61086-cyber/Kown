@@ -1,0 +1,177 @@
+-- XTFF SAFE ESP + AIM (NPC / OWN GAME ONLY)
+
+local Players = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local Camera = workspace.CurrentCamera
+local LP = Players.LocalPlayer
+local Mouse = LP:GetMouse()
+
+-- ===== STATE =====
+local State = {
+    Name = false,
+    Box  = false,
+    HP   = false,
+    Aim  = false
+}
+
+-- ===== GUI =====
+local gui = Instance.new("ScreenGui", LP.PlayerGui)
+gui.Name = "XTFF_UI"
+gui.ResetOnSpawn = false
+
+local main = Instance.new("Frame", gui)
+main.Size = UDim2.fromOffset(360, 220)
+main.Position = UDim2.fromScale(0.5,0.5)
+main.AnchorPoint = Vector2.new(0.5,0.5)
+main.BackgroundColor3 = Color3.fromRGB(20,20,30)
+main.BorderSizePixel = 0
+
+local title = Instance.new("TextLabel", main)
+title.Size = UDim2.new(1,0,0,36)
+title.BackgroundTransparency = 1
+title.Text = "XTFF SAFE MENU"
+title.TextColor3 = Color3.new(1,1,1)
+title.Font = Enum.Font.GothamBold
+title.TextScaled = true
+
+local close = Instance.new("TextButton", main)
+close.Size = UDim2.fromOffset(28,28)
+close.Position = UDim2.new(1,-32,0,4)
+close.Text = "X"
+close.BackgroundTransparency = 1
+close.TextColor3 = Color3.new(1,1,1)
+
+local list = Instance.new("Frame", main)
+list.Size = UDim2.new(1,-20,1,-56)
+list.Position = UDim2.fromOffset(10,46)
+list.BackgroundTransparency = 1
+
+local y = 0
+local function Toggle(text, key)
+    local b = Instance.new("TextButton", list)
+    b.Size = UDim2.new(1,0,0,32)
+    b.Position = UDim2.fromOffset(0,y)
+    y += 38
+    b.BackgroundColor3 = Color3.fromRGB(60,60,60)
+    b.TextColor3 = Color3.new(1,1,1)
+    b.BorderSizePixel = 0
+    b.Font = Enum.Font.Gotham
+    b.TextSize = 14
+
+    local function refresh()
+        b.Text = text..": "..(State[key] and "ON" or "OFF")
+    end
+    refresh()
+
+    b.MouseButton1Click:Connect(function()
+        State[key] = not State[key]
+        refresh()
+    end)
+end
+
+Toggle("ESP NAME","Name")
+Toggle("ESP BOX","Box")
+Toggle("ESP HP","HP")
+Toggle("AIM (NPC)","Aim")
+
+close.MouseButton1Click:Connect(function()
+    main.Visible = false
+end)
+
+UIS.InputBegan:Connect(function(i,g)
+    if g then return end
+    if i.KeyCode == Enum.KeyCode.RightShift then
+        main.Visible = not main.Visible
+    end
+end)
+
+-- ===== ESP (NPC ONLY) =====
+local ESPs = {}
+local NPC_FOLDER = workspace:FindFirstChild("NPCs") -- đặt NPC vào folder này
+
+local function createESP(model)
+    if ESPs[model] then return end
+
+    local hrp = model:FindFirstChild("HumanoidRootPart")
+    local hum = model:FindFirstChild("Humanoid")
+    if not hrp or not hum then return end
+
+    local box = Instance.new("BoxHandleAdornment")
+    box.Size = Vector3.new(4,6,2)
+    box.AlwaysOnTop = true
+    box.Adornee = model
+    box.Color3 = Color3.fromRGB(255,0,0)
+    box.Transparency = 0.4
+    box.Parent = model
+
+    local bb = Instance.new("BillboardGui", model)
+    bb.Size = UDim2.fromOffset(120,40)
+    bb.StudsOffset = Vector3.new(0,3,0)
+    bb.AlwaysOnTop = true
+
+    local name = Instance.new("TextLabel", bb)
+    name.Size = UDim2.new(1,0,0.5,0)
+    name.BackgroundTransparency = 1
+    name.Text = model.Name
+    name.TextColor3 = Color3.new(1,1,1)
+    name.TextScaled = true
+
+    local hp = Instance.new("TextLabel", bb)
+    hp.Position = UDim2.fromScale(0,0.5)
+    hp.Size = UDim2.new(1,0,0.5,0)
+    hp.BackgroundTransparency = 1
+    hp.TextColor3 = Color3.new(0,1,0)
+    hp.TextScaled = true
+
+    ESPs[model] = {box=box,bb=bb,name=name,hp=hp,hum=hum}
+end
+
+RunService.RenderStepped:Connect(function()
+    if NPC_FOLDER then
+        for _,m in ipairs(NPC_FOLDER:GetChildren()) do
+            if m:FindFirstChild("Humanoid") and m:FindFirstChild("HumanoidRootPart") then
+                createESP(m)
+            end
+        end
+    end
+
+    for m,data in pairs(ESPs) do
+        if m.Parent then
+            data.box.Visible = State.Box
+            data.bb.Enabled = State.Name or State.HP
+            data.name.Visible = State.Name
+            data.hp.Visible = State.HP
+            data.hp.Text = "HP: "..math.floor(data.hum.Health)
+        end
+    end
+end)
+
+-- ===== SAFE AIM (NPC ONLY) =====
+local function getBestTarget()
+    if not NPC_FOLDER then return nil end
+    local best, bestDist = nil, math.huge
+    for _,m in ipairs(NPC_FOLDER:GetChildren()) do
+        if m:FindFirstChild("Humanoid") and m:FindFirstChild("HumanoidRootPart") and m.Humanoid.Health > 0 then
+            local pos, onScreen = Camera:WorldToViewportPoint(m.HumanoidRootPart.Position)
+            if onScreen then
+                local d = (Vector2.new(pos.X, pos.Y) - Vector2.new(Mouse.X, Mouse.Y)).Magnitude
+                if d < bestDist then
+                    bestDist = d
+                    best = m
+                end
+            end
+        end
+    end
+    return best
+end
+
+RunService.RenderStepped:Connect(function()
+    if not State.Aim then return end
+    if not UIS:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then return end
+
+    local target = getBestTarget()
+    if target and target:FindFirstChild("HumanoidRootPart") then
+        Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.HumanoidRootPart.Position)
+    end
+end)
