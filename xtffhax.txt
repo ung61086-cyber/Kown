@@ -1,12 +1,11 @@
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
 local LP = Players.LocalPlayer
 
 -- ===== STATE =====
 local State = {
-    Name=false, Box=false, Line=false, HP=false, Hitbox=false,
-    AimPriority="CrossHair",
-    AimWhen="Scope only"
+    Name=false, Box=false, HP=false, Hitbox=false,
 }
 
 -- ===== GUI =====
@@ -24,7 +23,7 @@ main.BorderSizePixel = 0
 local top = Instance.new("TextLabel", main)
 top.Size = UDim2.new(1,0,0,40)
 top.BackgroundTransparency = 1
-top.Text = "XTFF-Hax"
+top.Text = "XTFF DEMO"
 top.TextColor3 = Color3.new(1,1,1)
 top.Font = Enum.Font.GothamBold
 top.TextScaled = true
@@ -38,7 +37,6 @@ close.TextScaled = true
 close.BackgroundTransparency = 1
 close.TextColor3 = Color3.new(1,1,1)
 
--- Left menu
 local left = Instance.new("Frame", main)
 left.Size = UDim2.fromOffset(150, 250)
 left.Position = UDim2.fromOffset(10, 50)
@@ -58,11 +56,8 @@ local function MenuBtn(text, y)
 end
 
 local btnPlayer = MenuBtn("PLAYER", 0)
-local btnAim = MenuBtn("AIM", 50)
-local btnSet = MenuBtn("SETTINGS", 100)
 
 local panels = {}
-
 local function NewPanel()
     local p = Instance.new("Frame", main)
     p.Size = UDim2.fromOffset(260, 240)
@@ -73,14 +68,13 @@ local function NewPanel()
 end
 
 panels.PLAYER = NewPanel()
-panels.AIM = NewPanel()
-panels.SET = NewPanel()
 
 local function Show(name)
-    for k,v in pairs(panels) do v.Visible = (k==name) end
+    for k,v in pairs(panels) do
+        v.Visible = (k==name)
+    end
 end
 
--- PLAYER (ESP toggles)
 local y = 0
 local function Toggle(parent, text, key)
     local b = Instance.new("TextButton", parent)
@@ -92,10 +86,12 @@ local function Toggle(parent, text, key)
     b.BorderSizePixel = 0
     b.Font = Enum.Font.Gotham
     b.TextSize = 14
+
     local function refresh()
         b.Text = text..": "..(State[key] and "ON" or "OFF")
     end
     refresh()
+
     b.MouseButton1Click:Connect(function()
         State[key] = not State[key]
         refresh()
@@ -104,65 +100,12 @@ end
 
 Toggle(panels.PLAYER,"NAME","Name")
 Toggle(panels.PLAYER,"BOX","Box")
-Toggle(panels.PLAYER,"LINE","Line")
 Toggle(panels.PLAYER,"HP","HP")
 Toggle(panels.PLAYER,"HITBOX","Hitbox")
 
--- AIM panel
-local function Label(parent, t, y)
-    local l = Instance.new("TextLabel", parent)
-    l.Size = UDim2.new(1,0,0,24)
-    l.Position = UDim2.fromOffset(0,y)
-    l.BackgroundTransparency = 1
-    l.TextXAlignment = Left
-    l.Text = t
-    l.TextColor3 = Color3.new(1,1,1)
-    l.Font = Enum.Font.Gotham
-    l.TextSize = 16
-end
-
-local function Radio(parent, t, y, group, value, set)
-    local b = Instance.new("TextButton", parent)
-    b.Size = UDim2.new(1,0,0,24)
-    b.Position = UDim2.fromOffset(0,y)
-    b.BackgroundTransparency = 1
-    b.TextXAlignment = Left
-    b.Font = Enum.Font.Gotham
-    b.TextSize = 14
-    local function refresh()
-        b.Text = (set()==value and "●  " or "○  ")..t
-        b.TextColor3 = Color3.new(1,1,1)
-    end
-    refresh()
-    b.MouseButton1Click:Connect(function()
-        group(value)
-        refresh()
-    end)
-    return refresh
-end
-
-Label(panels.AIM,"Aim priority",0)
-local r1 = Radio(panels.AIM,"CrossHair",30,function(v) State.AimPriority=v end,"CrossHair",function() return State.AimPriority end)
-local r2 = Radio(panels.AIM,"Distance",55,function(v) State.AimPriority=v end,"Distance",function() return State.AimPriority end)
-
-Label(panels.AIM,"Aim when",95)
-local r3 = Radio(panels.AIM,"Scope only",125,function(v) State.AimWhen=v end,"Scope only",function() return State.AimWhen end)
-local r4 = Radio(panels.AIM,"Firing only",150,function(v) State.AimWhen=v end,"Firing only",function() return State.AimWhen end)
-local r5 = Radio(panels.AIM,"Scope and Firing",175,function(v) State.AimWhen=v end,"Scope and Firing",function() return State.AimWhen end)
-
--- SETTINGS panel (placeholder)
-local info = Instance.new("TextLabel", panels.SET)
-info.Size = UDim2.new(1,0,0,60)
-info.BackgroundTransparency = 1
-info.Text = "Settings panel\n(placeholder)"
-info.TextColor3 = Color3.new(1,1,1)
-info.Font = Enum.Font.Gotham
-info.TextSize = 16
-
--- Buttons behavior
-btnPlayer.MouseButton1Click:Connect(function() Show("PLAYER") end)
-btnAim.MouseButton1Click:Connect(function() Show("AIM") end)
-btnSet.MouseButton1Click:Connect(function() Show("SET") end)
+btnPlayer.MouseButton1Click:Connect(function()
+    Show("PLAYER")
+end)
 
 Show("PLAYER")
 
@@ -174,5 +117,64 @@ UIS.InputBegan:Connect(function(i,g)
     if g then return end
     if i.KeyCode == Enum.KeyCode.RightShift then
         main.Visible = not main.Visible
+    end
+end)
+
+-- ===== ESP ENGINE (AN TOÀN – GAME CỦA BẠN) =====
+local ESPs = {}
+
+local function createESP(model)
+    if ESPs[model] then return end
+    if model == LP.Character then return end
+
+    local hrp = model:FindFirstChild("HumanoidRootPart")
+    local hum = model:FindFirstChild("Humanoid")
+    if not hrp or not hum then return end
+
+    local box = Instance.new("BoxHandleAdornment")
+    box.Size = Vector3.new(4,6,2)
+    box.AlwaysOnTop = true
+    box.Adornee = model
+    box.Color3 = Color3.fromRGB(255,0,0)
+    box.Transparency = 0.4
+    box.Parent = model
+
+    local bb = Instance.new("BillboardGui", model)
+    bb.Size = UDim2.fromOffset(120,40)
+    bb.StudsOffset = Vector3.new(0,3,0)
+    bb.AlwaysOnTop = true
+
+    local name = Instance.new("TextLabel", bb)
+    name.Size = UDim2.new(1,0,0.5,0)
+    name.BackgroundTransparency = 1
+    name.Text = model.Name
+    name.TextColor3 = Color3.new(1,1,1)
+    name.TextScaled = true
+
+    local hp = Instance.new("TextLabel", bb)
+    hp.Position = UDim2.fromScale(0,0.5)
+    hp.Size = UDim2.new(1,0,0.5,0)
+    hp.BackgroundTransparency = 1
+    hp.TextColor3 = Color3.new(0,1,0)
+    hp.TextScaled = true
+
+    ESPs[model] = {box=box,bb=bb,name=name,hp=hp,hum=hum}
+end
+
+RunService.RenderStepped:Connect(function()
+    for _,m in ipairs(workspace:GetChildren()) do
+        if m:FindFirstChild("Humanoid") and m:FindFirstChild("HumanoidRootPart") then
+            createESP(m)
+        end
+    end
+
+    for m,data in pairs(ESPs) do
+        if m.Parent then
+            data.box.Visible = State.Box
+            data.bb.Enabled = State.Name or State.HP
+            data.name.Visible = State.Name
+            data.hp.Visible = State.HP
+            data.hp.Text = "HP: "..math.floor(data.hum.Health)
+        end
     end
 end)
