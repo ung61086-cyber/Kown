@@ -1,106 +1,238 @@
--- XTFFHAX STYLE DEMO MENU (UI ONLY)
+-- XTFFHAX STYLE ESP (FOR STUDIO / PRIVATE GAME ONLY)
 
 local Players = game:GetService("Players")
-local plr = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local UIS = game:GetService("UserInputService")
+local Camera = workspace.CurrentCamera
+local LP = Players.LocalPlayer
 
-local gui = Instance.new("ScreenGui", plr.PlayerGui)
-gui.Name = "XTFFHAX_DEMO"
+-- STATES
+local S = {
+	Name=false, HP=false, Dist=false, Alert=false,
+	Radius=150, Menu=true
+}
+
+-- UI ROOT
+local gui = Instance.new("ScreenGui", LP:WaitForChild("PlayerGui"))
+gui.Name = "XT_UI"
 
 local main = Instance.new("Frame", gui)
-main.Size = UDim2.fromOffset(420, 240)
-main.Position = UDim2.fromScale(0.5, 0.5)
-main.AnchorPoint = Vector2.new(0.5, 0.5)
-main.BackgroundColor3 = Color3.fromRGB(20, 24, 32)
+main.Size = UDim2.fromOffset(420,260)
+main.Position = UDim2.fromOffset(40,120)
+main.BackgroundColor3 = Color3.fromRGB(28,35,51)
 main.BorderSizePixel = 0
+main.Active = true
+main.Draggable = true
 main.Visible = true
-Instance.new("UICorner", main).CornerRadius = UDim.new(0, 10)
 
--- Tabs
-local tabs = {"PLAYER","AIM","SETTINGS"}
-local tabBtns = {}
+-- LEFT TABS
+local left = Instance.new("Frame", main)
+left.Size = UDim2.fromOffset(120,260)
+left.BackgroundColor3 = Color3.fromRGB(20,26,38)
+left.BorderSizePixel = 0
+
+local function tabBtn(txt,y)
+	local b = Instance.new("TextButton", left)
+	b.Size = UDim2.fromOffset(100,34)
+	b.Position = UDim2.fromOffset(10,y)
+	b.Text = txt
+	b.TextColor3 = Color3.new(1,1,1)
+	b.BackgroundColor3 = Color3.fromRGB(42,50,72)
+	b.BorderSizePixel = 0
+	b.AutoButtonColor = false
+	return b
+end
+
+local tPlayer = tabBtn("PLAYER",16)
+local tAim    = tabBtn("AIM",58)
+local tSet    = tabBtn("SETTINGS",100)
+
+-- RIGHT PAGES
 local pages = {}
-
-for i,name in ipairs(tabs) do
-    local b = Instance.new("TextButton", main)
-    b.Size = UDim2.fromOffset(110, 36)
-    b.Position = UDim2.fromOffset(10, 10 + (i-1)*46)
-    b.Text = name
-    b.BackgroundColor3 = Color3.fromRGB(40,40,40)
-    b.TextColor3 = Color3.new(1,1,1)
-    b.BorderSizePixel = 0
-    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 8)
-    tabBtns[name] = b
-
-    local page = Instance.new("Frame", main)
-    page.Size = UDim2.fromOffset(270, 200)
-    page.Position = UDim2.fromOffset(140, 20)
-    page.BackgroundTransparency = 1
-    page.Visible = false
-    pages[name] = page
-
-    b.MouseButton1Click:Connect(function()
-        for _,p in pairs(pages) do p.Visible = false end
-        for _,t in pairs(tabBtns) do t.BackgroundColor3 = Color3.fromRGB(40,40,40) end
-        page.Visible = true
-        b.BackgroundColor3 = Color3.fromRGB(60,120,255)
-    end)
+for _,n in ipairs({"PLAYER","AIM","SETTINGS"}) do
+	local p = Instance.new("Frame", main)
+	p.Size = UDim2.fromOffset(300,260)
+	p.Position = UDim2.fromOffset(120,0)
+	p.BackgroundTransparency = 1
+	p.Visible = (n=="PLAYER")
+	pages[n]=p
 end
 
--- Toggle
-local function createToggle(parent, text, y)
-    local btn = Instance.new("TextButton", parent)
-    btn.Size = UDim2.fromOffset(240, 36)
-    btn.Position = UDim2.fromOffset(0, y)
-    btn.Text = text .. ": OFF"
-    btn.BackgroundColor3 = Color3.fromRGB(60,0,0)
-    btn.TextColor3 = Color3.new(1,1,1)
-    btn.BorderSizePixel = 0
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
+local function switch(parent, y, text, key)
+	local row = Instance.new("Frame", parent)
+	row.Size = UDim2.fromOffset(260,28)
+	row.Position = UDim2.fromOffset(20,y)
+	row.BackgroundTransparency = 1
 
-    local state = false
-    btn.MouseButton1Click:Connect(function()
-        state = not state
-        if state then
-            btn.Text = text .. ": ON"
-            btn.BackgroundColor3 = Color3.fromRGB(0,120,0)
-        else
-            btn.Text = text .. ": OFF"
-            btn.BackgroundColor3 = Color3.fromRGB(60,0,0)
-        end
-    end)
+	local lb = Instance.new("TextLabel", row)
+	lb.Size = UDim2.fromOffset(160,28)
+	lb.Text = text
+	lb.TextColor3 = Color3.new(1,1,1)
+	lb.BackgroundTransparency = 1
+	lb.TextXAlignment = Left
+
+	local btn = Instance.new("TextButton", row)
+	btn.Size = UDim2.fromOffset(60,22)
+	btn.Position = UDim2.fromOffset(190,3)
+	btn.Text = "OFF"
+	btn.TextColor3 = Color3.new(1,1,1)
+	btn.BackgroundColor3 = Color3.fromRGB(120,0,0)
+	btn.BorderSizePixel = 0
+
+	btn.MouseButton1Click:Connect(function()
+		S[key] = not S[key]
+		btn.Text = S[key] and "ON" or "OFF"
+		btn.BackgroundColor3 = S[key] and Color3.fromRGB(0,160,80) or Color3.fromRGB(120,0,0)
+	end)
 end
 
--- Pages
-createToggle(pages.PLAYER, "Draw Health", 0)
-createToggle(pages.PLAYER, "Draw Name", 45)
-createToggle(pages.PLAYER, "Draw Distance", 90)
-createToggle(pages.PLAYER, "Alert 360", 135)
+-- PLAYER PAGE
+switch(pages.PLAYER, 20, "Draw Name", "Name")
+switch(pages.PLAYER, 56, "Draw Health", "HP")
+switch(pages.PLAYER, 92, "Draw Distance", "Dist")
+switch(pages.PLAYER, 128, "Alert 360", "Alert")
 
-createToggle(pages.AIM, "Aimbot", 0)
-createToggle(pages.AIM, "Aimbot Knock", 45)
-createToggle(pages.AIM, "HideBot", 90)
+-- AIM PAGE (Radius)
+local rLabel = Instance.new("TextLabel", pages.AIM)
+rLabel.Position = UDim2.fromOffset(20,24)
+rLabel.Size = UDim2.fromOffset(260,24)
+rLabel.Text = "Radius: 150"
+rLabel.TextColor3 = Color3.new(1,1,1)
+rLabel.BackgroundTransparency = 1
+rLabel.TextXAlignment = Left
 
-createToggle(pages.SETTINGS, "Show FPS", 0)
-createToggle(pages.SETTINGS, "Reduce Lag", 45)
+local r = Instance.new("TextBox", pages.AIM)
+r.Position = UDim2.fromOffset(20,56)
+r.Size = UDim2.fromOffset(120,28)
+r.Text = "150"
+r.BackgroundColor3 = Color3.fromRGB(42,50,72)
+r.TextColor3 = Color3.new(1,1,1)
+r.BorderSizePixel = 0
 
--- Open default tab
-pages.PLAYER.Visible = true
-tabBtns.PLAYER.BackgroundColor3 = Color3.fromRGB(60,120,255)
+r.FocusLost:Connect(function()
+	local v = tonumber(r.Text)
+	if v then
+		v = math.clamp(v, 0, 1000)
+		S.Radius = v
+		rLabel.Text = "Radius: "..v
+		r.Text = tostring(v)
+	end
+end)
 
--- Nút ẩn/hiện
-local toggleBtn = Instance.new("TextButton", gui)
-toggleBtn.Size = UDim2.fromOffset(50, 50)
-toggleBtn.Position = UDim2.fromOffset(20, 200)
-toggleBtn.Text = "XT"
-toggleBtn.Font = Enum.Font.GothamBold
-toggleBtn.TextSize = 16
-toggleBtn.TextColor3 = Color3.new(1,1,1)
-toggleBtn.BackgroundColor3 = Color3.fromRGB(0, 140, 255)
-toggleBtn.BorderSizePixel = 0
-Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(1, 0)
+-- SETTINGS
+local hide = Instance.new("TextButton", pages.SETTINGS)
+hide.Position = UDim2.fromOffset(20,24)
+hide.Size = UDim2.fromOffset(160,32)
+hide.Text = "Hide / Show Menu (F4)"
+hide.TextColor3 = Color3.new(1,1,1)
+hide.BackgroundColor3 = Color3.fromRGB(42,50,72)
+hide.BorderSizePixel = 0
 
-local open = true
-toggleBtn.MouseButton1Click:Connect(function()
-    open = not open
-    main.Visible = open
+-- TAB LOGIC
+local function show(n)
+	for k,v in pairs(pages) do v.Visible = (k==n) end
+end
+tPlayer.MouseButton1Click:Connect(function() show("PLAYER") end)
+tAim.MouseButton1Click:Connect(function() show("AIM") end)
+tSet.MouseButton1Click:Connect(function() show("SETTINGS") end)
+
+UIS.InputBegan:Connect(function(i,g)
+	if g then return end
+	if i.KeyCode == Enum.KeyCode.F4 then
+		S.Menu = not S.Menu
+		main.Visible = S.Menu
+	end
+end)
+
+-- ESP OBJECTS
+local esp = {}
+
+local function makeESP(plr)
+	if plr==LP then return end
+	local t = {}
+
+	local bill = Instance.new("BillboardGui")
+	bill.Size = UDim2.fromOffset(120,40)
+	bill.AlwaysOnTop = true
+
+	local name = Instance.new("TextLabel", bill)
+	name.Size = UDim2.fromScale(1,0.5)
+	name.BackgroundTransparency = 1
+	name.TextColor3 = Color3.fromRGB(0,255,200)
+	name.Text = plr.Name
+
+	local hp = Instance.new("Frame", bill)
+	hp.Position = UDim2.fromScale(0,0.6)
+	hp.Size = UDim2.fromScale(1,0.15)
+	hp.BackgroundColor3 = Color3.fromRGB(120,0,0)
+
+	local hp2 = Instance.new("Frame", hp)
+	hp2.Size = UDim2.fromScale(1,1)
+	hp2.BackgroundColor3 = Color3.fromRGB(0,255,0)
+
+	local dist = Instance.new("TextLabel", bill)
+	dist.Position = UDim2.fromScale(0,0.78)
+	dist.Size = UDim2.fromScale(1,0.22)
+	dist.BackgroundTransparency = 1
+	dist.TextColor3 = Color3.new(1,1,1)
+
+	t.bill, t.name, t.hp, t.hp2, t.dist = bill, name, hp, hp2, dist
+	esp[plr]=t
+end
+
+for _,p in ipairs(Players:GetPlayers()) do makeESP(p) end
+Players.PlayerAdded:Connect(makeESP)
+Players.PlayerRemoving:Connect(function(p)
+	if esp[p] then
+		if esp[p].bill then esp[p].bill:Destroy() end
+		esp[p]=nil
+	end
+end)
+
+-- ALERT CIRCLE
+local circle = Instance.new("Frame", gui)
+circle.Size = UDim2.fromOffset(S.Radius*2, S.Radius*2)
+circle.AnchorPoint = Vector2.new(0.5,0.5)
+circle.BackgroundTransparency = 1
+circle.Visible = false
+
+local uic = Instance.new("UICorner", circle)
+uic.CornerRadius = UDim.new(1,0)
+local stroke = Instance.new("UIStroke", circle)
+stroke.Thickness = 2
+stroke.Color = Color3.fromRGB(0,255,0)
+
+-- UPDATE
+RunService.RenderStepped:Connect(function()
+	for plr,t in pairs(esp) do
+		local ch = plr.Character
+		local hrp = ch and ch:FindFirstChild("HumanoidRootPart")
+		local hum = ch and ch:FindFirstChildOfClass("Humanoid")
+		if hrp and hum then
+			t.bill.Adornee = hrp
+			t.bill.Parent = gui
+			t.bill.Enabled = (S.Name or S.HP or S.Dist)
+
+			t.name.Visible = S.Name
+			t.hp.Visible = S.HP
+			t.hp2.Size = UDim2.fromScale(math.clamp(hum.Health/hum.MaxHealth,0,1),1)
+
+			if S.Dist then
+				local d = (Camera.CFrame.Position - hrp.Position).Magnitude
+				t.dist.Text = math.floor(d).."m"
+				t.dist.Visible = true
+			else
+				t.dist.Visible = false
+			end
+		end
+	end
+
+	-- Alert
+	if S.Alert then
+		circle.Visible = true
+		circle.Size = UDim2.fromOffset(S.Radius*2, S.Radius*2)
+		circle.Position = UDim2.fromScale(0.5,0.5)
+	else
+		circle.Visible = false
+	end
 end)
