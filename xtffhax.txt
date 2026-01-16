@@ -1,23 +1,25 @@
--- IOSVIET DEMO UI (SAFE EXECUTOR VERSION)
+-- IOSVIET TRAINING FULL (MAP RIENG / DUMMY / NPC)
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UIS = game:GetService("UserInputService")
+local Camera = workspace.CurrentCamera
 local LP = Players.LocalPlayer
 
+-- STATE
 local S = {
 	Name=false, Health=false, Distance=false, Line=false, Alert=false,
 	Aimbot=false, HideBot=false, AimbotKnock=false,
 	Radius=250
 }
 
--- GUI
+-- ========== GUI ==========
 local gui = Instance.new("ScreenGui")
-gui.Name = "iosviet_demo"
+gui.Name = "iosviet_training"
 pcall(function() gui.Parent = LP:WaitForChild("PlayerGui") end)
 if not gui.Parent then gui.Parent = game:GetService("CoreGui") end
 
--- Floating open button
+-- Open button
 local openBtn = Instance.new("TextButton", gui)
 openBtn.Size = UDim2.fromOffset(48,48)
 openBtn.Position = UDim2.fromScale(0.02,0.5)
@@ -34,7 +36,7 @@ frame.BackgroundColor3 = Color3.fromRGB(20,20,30)
 frame.Visible = false
 Instance.new("UICorner", frame)
 
--- Close X
+-- Close
 local closeBtn = Instance.new("TextButton", frame)
 closeBtn.Size = UDim2.fromOffset(28,28)
 closeBtn.Position = UDim2.fromOffset(380,8)
@@ -157,7 +159,47 @@ end)
 
 showPlayer()
 
+-- ========== TRAINING LOGIC (DUMMY / NPC) ==========
+local function getDummies()
+	local list = {}
+	for _,m in ipairs(workspace:GetDescendants()) do
+		if m:IsA("Model") and m:FindFirstChild("Humanoid") and m:FindFirstChild("HumanoidRootPart") then
+			if m.Name:lower():find("dummy") or m.Name:lower():find("npc") then
+				table.insert(list,m)
+			end
+		end
+	end
+	return list
+end
+
+local function getClosestDummyInRadius()
+	local best, dist
+	for _,d in ipairs(getDummies()) do
+		local hrp = d.HumanoidRootPart
+		local pos, on = Camera:WorldToViewportPoint(hrp.Position)
+		if on then
+			local dx = pos.X - Camera.ViewportSize.X/2
+			local dy = pos.Y - Camera.ViewportSize.Y/2
+			local r = math.sqrt(dx*dx + dy*dy)
+			if r <= S.Radius then
+				if not dist or r < dist then
+					best = hrp
+					dist = r
+				end
+			end
+		end
+	end
+	return best
+end
+
 RunService.RenderStepped:Connect(function()
 	circle.Position = UDim2.fromScale(0.5,0.5)
 	circle.Visible = S.Aimbot and not S.HideBot
+
+	if S.Aimbot then
+		local t = getClosestDummyInRadius()
+		if t then
+			Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(Camera.CFrame.Position, t.Position), 0.15)
+		end
+	end
 end)
