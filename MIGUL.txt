@@ -1,210 +1,61 @@
---// MIGUL iOS STYLE - FULL ESP (HỢP LỆ)
-local Players = game:GetService("Players")
+-- MENU iOS DEMO - CHẮC CHẮN LÊN
 local UIS = game:GetService("UserInputService")
+local Player = game.Players.LocalPlayer
 local Lighting = game:GetService("Lighting")
-local LocalPlayer = Players.LocalPlayer
-local Camera = workspace.CurrentCamera
 
---==================== SETTINGS ====================
-local Settings = {
-    ESP = true,
-    Glow = true,
-    Box = true,
-    Name = true,
-    Health = true,
-    Distance = true,
-    TeamColor = true,
-}
-
---==================== BLUR ====================
-local blur = Instance.new("BlurEffect")
-blur.Size = 18
-blur.Enabled = false
-blur.Parent = Lighting
-
---==================== UI ====================
-local gui = Instance.new("ScreenGui", game.CoreGui)
-gui.Name = "MigulIOS"
+-- GUI
+local gui = Instance.new("ScreenGui")
+gui.Name = "IOSMenuDemo"
 gui.ResetOnSpawn = false
+gui.Parent = Player:WaitForChild("PlayerGui")
 
 local main = Instance.new("Frame", gui)
-main.Size = UDim2.fromScale(0.45,0.55)
-main.Position = UDim2.fromScale(0.275,0.225)
-main.BackgroundColor3 = Color3.fromRGB(18,18,20)
-main.BackgroundTransparency = 0.08
+main.Size = UDim2.fromScale(0.45, 0.4)
+main.Position = UDim2.fromScale(0.275, 0.3)
+main.BackgroundColor3 = Color3.fromRGB(25,25,28)
 main.Visible = false
 main.Active = true
 main.Draggable = true
-Instance.new("UICorner", main).CornerRadius = UDim.new(0,18)
+Instance.new("UICorner", main).CornerRadius = UDim.new(0,20)
 
-local left = Instance.new("Frame", main)
-left.Size = UDim2.fromScale(0.22,1)
-left.BackgroundColor3 = Color3.fromRGB(22,22,25)
-Instance.new("UICorner", left).CornerRadius = UDim.new(0,18)
-
-local title = Instance.new("TextLabel", left)
-title.Size = UDim2.fromScale(1,0.15)
-title.Text = "MIGUL"
+-- Title
+local title = Instance.new("TextLabel", main)
+title.Size = UDim2.fromScale(1,0.2)
+title.Text = "MIGUL iOS"
 title.Font = Enum.Font.GothamBold
 title.TextScaled = true
 title.TextColor3 = Color3.fromRGB(0,170,255)
 title.BackgroundTransparency = 1
 
-local content = Instance.new("Frame", main)
-content.Position = UDim2.fromScale(0.24,0.05)
-content.Size = UDim2.fromScale(0.73,0.9)
-content.BackgroundTransparency = 1
+-- Button
+local btn = Instance.new("TextButton", main)
+btn.Size = UDim2.fromScale(0.8,0.25)
+btn.Position = UDim2.fromScale(0.1,0.45)
+btn.Text = "Toggle FullBright"
+btn.Font = Enum.Font.Gotham
+btn.TextScaled = true
+btn.TextColor3 = Color3.new(1,1,1)
+btn.BackgroundColor3 = Color3.fromRGB(45,45,50)
+Instance.new("UICorner", btn).CornerRadius = UDim.new(0,14)
 
-local page = Instance.new("TextLabel", content)
-page.Size = UDim2.fromScale(1,0.1)
-page.Text = "VISUAL"
-page.Font = Enum.Font.GothamBold
-page.TextScaled = true
-page.TextColor3 = Color3.new(1,1,1)
-page.BackgroundTransparency = 1
-
-local list = Instance.new("UIListLayout", content)
-list.Padding = UDim.new(0,10)
-
---==================== TOGGLE iOS ====================
-local function iosToggle(text, key)
-    local holder = Instance.new("Frame", content)
-    holder.Size = UDim2.fromScale(1,0.12)
-    holder.BackgroundColor3 = Color3.fromRGB(30,30,35)
-    Instance.new("UICorner", holder).CornerRadius = UDim.new(0,12)
-
-    local lbl = Instance.new("TextLabel", holder)
-    lbl.Text = text
-    lbl.Font = Enum.Font.Gotham
-    lbl.TextColor3 = Color3.new(1,1,1)
-    lbl.Size = UDim2.fromScale(0.7,1)
-    lbl.TextXAlignment = Left
-    lbl.BackgroundTransparency = 1
-
-    local track = Instance.new("Frame", holder)
-    track.Size = UDim2.fromScale(0.18,0.45)
-    track.Position = UDim2.fromScale(0.77,0.275)
-    track.BackgroundColor3 = Color3.fromRGB(80,80,80)
-    Instance.new("UICorner", track).CornerRadius = UDim.new(1,0)
-
-    local knob = Instance.new("Frame", track)
-    knob.Size = UDim2.fromScale(0.45,0.8)
-    knob.Position = UDim2.fromScale(0.05,0.1)
-    knob.BackgroundColor3 = Color3.fromRGB(230,230,230)
-    Instance.new("UICorner", knob).CornerRadius = UDim.new(1,0)
-
-    local on = Settings[key]
-
-    local function refresh()
-        track.BackgroundColor3 = on and Color3.fromRGB(0,170,255) or Color3.fromRGB(80,80,80)
-        knob:TweenPosition(on and UDim2.fromScale(0.5,0.1) or UDim2.fromScale(0.05,0.1),
-            Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.15, true)
-        Settings[key] = on
-    end
-    refresh()
-
-    holder.InputBegan:Connect(function(i)
-        if i.UserInputType == Enum.UserInputType.MouseButton1 then
-            on = not on
-            refresh()
-        end
-    end)
-end
-
--- VISUAL TOGGLES
-iosToggle("ESP Master","ESP")
-iosToggle("Glow ESP","Glow")
-iosToggle("Box ESP","Box")
-iosToggle("Name","Name")
-iosToggle("Health","Health")
-iosToggle("Distance","Distance")
-
--- LEFT TABS
-local function tab(text, y)
-    local b = Instance.new("TextButton", left)
-    b.Size = UDim2.fromScale(0.9,0.1)
-    b.Position = UDim2.fromScale(0.05,y)
-    b.Text = text
-    b.Font = Enum.Font.Gotham
-    b.TextColor3 = Color3.new(1,1,1)
-    b.BackgroundColor3 = Color3.fromRGB(35,35,40)
-    Instance.new("UICorner", b).CornerRadius = UDim.new(0,10)
-    b.MouseButton1Click:Connect(function()
-        page.Text = text:upper()
-    end)
-end
-
-tab("Visual",0.22)
-tab("Settings",0.36)
-
--- MENU TOGGLE
-UIS.InputBegan:Connect(function(i,gp)
-    if gp then return end
-    if i.KeyCode == Enum.KeyCode.RightShift then
-        main.Visible = not main.Visible
-        blur.Enabled = main.Visible
-    end
+-- FullBright
+local on = false
+btn.MouseButton1Click:Connect(function()
+	on = not on
+	if on then
+		Lighting.Brightness = 3
+		Lighting.ClockTime = 14
+		btn.Text = "FullBright: ON"
+	else
+		Lighting.Brightness = 1
+		btn.Text = "FullBright: OFF"
+	end
 end)
 
---==================== ESP (HỢP LỆ) ====================
-local function setupCharacter(player, char)
-    if player == LocalPlayer then return end
-    local hum = char:WaitForChild("Humanoid")
-    local hrp = char:WaitForChild("HumanoidRootPart")
-
-    -- Glow
-    local hl = Instance.new("Highlight")
-    hl.Adornee = char
-    hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-    hl.FillTransparency = 0.5
-    hl.OutlineTransparency = 0
-    hl.Parent = char
-
-    -- Box
-    local box = Instance.new("SelectionBox")
-    box.Adornee = char
-    box.LineThickness = 0.05
-    box.Parent = char
-
-    -- Billboard
-    local bill = Instance.new("BillboardGui")
-    bill.Size = UDim2.fromOffset(200,50)
-    bill.StudsOffset = Vector3.new(0,3,0)
-    bill.AlwaysOnTop = true
-    bill.Parent = char
-
-    local txt = Instance.new("TextLabel", bill)
-    txt.Size = UDim2.fromScale(1,1)
-    txt.BackgroundTransparency = 1
-    txt.Font = Enum.Font.Gotham
-    txt.TextScaled = true
-    txt.TextStrokeTransparency = 0.5
-
-    game:GetService("RunService").RenderStepped:Connect(function()
-        if not char.Parent then return end
-        local dist = (Camera.CFrame.Position - hrp.Position).Magnitude
-        local color = (Settings.TeamColor and player.TeamColor.Color) or Color3.fromRGB(255,0,0)
-
-        hl.Enabled = Settings.ESP and Settings.Glow
-        box.Visible = Settings.ESP and Settings.Box
-        hl.FillColor = color
-        hl.OutlineColor = color
-        box.Color3 = color
-
-        bill.Enabled = Settings.ESP and Settings.Name
-        txt.TextColor3 = color
-        txt.Text =
-            player.Name ..
-            (Settings.Health and (" | HP:"..math.floor(hum.Health)) or "") ..
-            (Settings.Distance and (" | "..math.floor(dist).."m") or "")
-    end)
-end
-
-for _,p in pairs(Players:GetPlayers()) do
-    if p.Character then setupCharacter(p,p.Character) end
-    p.CharacterAdded:Connect(function(c) setupCharacter(p,c) end)
-end
-
-Players.PlayerAdded:Connect(function(p)
-    p.CharacterAdded:Connect(function(c) setupCharacter(p,c) end)
+-- Toggle menu
+UIS.InputBegan:Connect(function(i,gp)
+	if gp then return end
+	if i.KeyCode == Enum.KeyCode.RightShift then
+		main.Visible = not main.Visible
+	end
 end)
