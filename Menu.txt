@@ -1,0 +1,113 @@
+-- ===== MENU GUI =====
+
+local player = game.Players.LocalPlayer
+local UIS = game:GetService("UserInputService")
+local camera = workspace.CurrentCamera
+
+-- GUI
+local gui = Instance.new("ScreenGui", player.PlayerGui)
+gui.Name = "PvPMenu"
+
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0, 300, 0, 400)
+frame.Position = UDim2.new(0.05, 0, 0.2, 0)
+frame.BackgroundColor3 = Color3.fromRGB(25,25,25)
+frame.Visible = true
+frame.Active = true
+frame.Draggable = true
+
+local title = Instance.new("TextLabel", frame)
+title.Size = UDim2.new(1,0,0,40)
+title.Text = "PvP MENU"
+title.TextColor3 = Color3.new(1,1,1)
+title.BackgroundColor3 = Color3.fromRGB(40,40,40)
+
+-- Toggle function creator
+local function createToggle(name, posY, callback)
+	local button = Instance.new("TextButton", frame)
+	button.Size = UDim2.new(0.9,0,0,35)
+	button.Position = UDim2.new(0.05,0,0,posY)
+	button.Text = name.." : OFF"
+	button.BackgroundColor3 = Color3.fromRGB(60,60,60)
+	button.TextColor3 = Color3.new(1,1,1)
+
+	local state = false
+
+	button.MouseButton1Click:Connect(function()
+		state = not state
+		button.Text = name.." : "..(state and "ON" or "OFF")
+		callback(state)
+	end)
+end
+
+-- ===== AUTO FARM DEMO =====
+local autoFarm = false
+createToggle("Auto Farm", 60, function(state)
+	autoFarm = state
+end)
+
+task.spawn(function()
+	while true do
+		if autoFarm then
+			print("Đang Auto Farm (demo)")
+		end
+		task.wait(1)
+	end
+end)
+
+-- ===== ESP HEAD =====
+createToggle("ESP Head", 110, function(state)
+	for _,plr in pairs(game.Players:GetPlayers()) do
+		if plr ~= player and plr.Character then
+			local head = plr.Character:FindFirstChild("Head")
+			if head then
+				if state then
+					local bill = Instance.new("BillboardGui", head)
+					bill.Size = UDim2.new(0,100,0,30)
+					bill.Name = "ESP_HEAD"
+					local txt = Instance.new("TextLabel", bill)
+					txt.Size = UDim2.new(1,0,1,0)
+					txt.Text = plr.Name
+					txt.TextColor3 = Color3.new(1,0,0)
+					txt.BackgroundTransparency = 1
+				else
+					if head:FindFirstChild("ESP_HEAD") then
+						head.ESP_HEAD:Destroy()
+					end
+				end
+			end
+		end
+	end
+end)
+
+-- ===== FOV SLIDER =====
+local fovLabel = Instance.new("TextLabel", frame)
+fovLabel.Size = UDim2.new(0.9,0,0,30)
+fovLabel.Position = UDim2.new(0.05,0,0,160)
+fovLabel.Text = "FOV: 70"
+fovLabel.BackgroundColor3 = Color3.fromRGB(60,60,60)
+fovLabel.TextColor3 = Color3.new(1,1,1)
+
+local slider = Instance.new("TextButton", frame)
+slider.Size = UDim2.new(0.9,0,0,30)
+slider.Position = UDim2.new(0.05,0,0,200)
+slider.Text = "Click to change FOV"
+slider.BackgroundColor3 = Color3.fromRGB(80,80,80)
+slider.TextColor3 = Color3.new(1,1,1)
+
+local currentFOV = 70
+slider.MouseButton1Click:Connect(function()
+	currentFOV += 10
+	if currentFOV > 100 then
+		currentFOV = 0
+	end
+	camera.FieldOfView = currentFOV
+	fovLabel.Text = "FOV: "..currentFOV
+end)
+
+-- ===== TOGGLE MENU (RightControl) =====
+UIS.InputBegan:Connect(function(input)
+	if input.KeyCode == Enum.KeyCode.RightControl then
+		frame.Visible = not frame.Visible
+	end
+end)
