@@ -1,0 +1,82 @@
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local mouse = player:GetMouse()
+local RunService = game:GetService("RunService")
+
+-- [[ CẤU HÌNH PVP ]] --
+_G.PVP_Settings = {
+    AutoClick = false,
+    HitboxSize = 25, -- Kích thước tầm đánh (Đừng để quá 50 dễ bị ban)
+    Aimlock = false,
+    WeaponName = "Combat" -- Đổi tên kiếm/melee của bạn vào đây
+}
+
+-- [[ HÀM TÌM NGƯỜI CHƠI GẦN NHẤT ]] --
+local function GetClosestPlayer()
+    local target = nil
+    local dist = math.huge
+    for _, v in pairs(Players:GetPlayers()) do
+        if v ~= player and v.Character and v.Character:FindFirstChild("HumanoidRootPart") and v.Character.Humanoid.Health > 0 then
+            local d = (player.Character.HumanoidRootPart.Position - v.Character.HumanoidRootPart.Position).Magnitude
+            if d < dist then
+                dist = d
+                target = v
+            end
+        end
+    end
+    return target
+end
+
+-- [[ LOGIC PVP ]] --
+RunService.RenderStepped:Connect(function()
+    -- 1. Mở rộng Hitbox (Giúp bạn chém xa và rộng hơn)
+    if _G.PVP_Settings.AutoClick then
+        pcall(function()
+            for _, v in pairs(Players:GetPlayers()) do
+                if v ~= player and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
+                    v.Character.HumanoidRootPart.Size = Vector3.new(_G.PVP_Settings.HitboxSize, _G.PVP_Settings.HitboxSize, _G.PVP_Settings.HitboxSize)
+                    v.Character.HumanoidRootPart.Transparency = 0.7 -- Làm mờ hitbox để dễ nhìn
+                    v.Character.HumanoidRootPart.CanCollide = false
+                end
+            end
+        end)
+    end
+
+    -- 2. Aimlock (Khóa mục tiêu khi bạn dùng Skill)
+    if _G.PVP_Settings.Aimlock then
+        local target = GetClosestPlayer()
+        if target and target.Character then
+            workspace.CurrentCamera.CFrame = CFrame.new(workspace.CurrentCamera.CFrame.Position, target.Character.HumanoidRootPart.Position)
+        end
+    end
+end)
+
+-- [[ GIAO DIỆN PVP GỌN NHẸ ]] --
+local gui = Instance.new("ScreenGui", player.PlayerGui)
+local main = Instance.new("Frame", gui)
+main.Size = UDim2.new(0, 200, 0, 150)
+main.Position = UDim2.new(0.8, 0, 0.5, 0)
+main.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+Instance.new("UICorner", main)
+
+local function AddPVPBtn(name, y, callback)
+    local btn = Instance.new("TextButton", main)
+    btn.Size = UDim2.new(1, -20, 0, 35)
+    btn.Position = UDim2.new(0, 10, 0, y)
+    btn.Text = name; btn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    btn.TextColor3 = Color3.new(1,1,1)
+    
+    local active = false
+    btn.MouseButton1Click:Connect(function()
+        active = not active
+        btn.BackgroundColor3 = active and Color3.fromRGB(255, 50, 50) or Color3.fromRGB(40, 40, 40)
+        callback(active)
+    end)
+end
+
+AddPVPBtn("Auto Click & Hitbox", 10, function(v) _G.PVP_Settings.AutoClick = v end)
+AddPVPBtn("Aimlock (Khóa Mục Tiêu)", 55, function(v) _G.PVP_Settings.Aimlock = v end)
+AddPVPBtn("Equip Weapon", 100, function() 
+    local t = player.Backpack:FindFirstChild(_G.PVP_Settings.WeaponName)
+    if t then player.Character.Humanoid:EquipTool(t) end
+end)
