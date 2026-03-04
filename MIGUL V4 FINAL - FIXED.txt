@@ -1,0 +1,118 @@
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local VirtualUser = game:GetService("VirtualUser")
+
+-- [[ CẤU HÌNH HỆ THỐNG ]] --
+_G.Settings = {
+    AutoFarm = false,
+    FastAttack = false,
+    WeaponName = "Combat", -- Tên vũ khí chính xác bạn đang dùng
+    Distance = 8
+}
+
+-- [[ LOGIC HỖ TRỢ ]] --
+local function EquipWeapon()
+    local tool = player.Backpack:FindFirstChild(_G.Settings.WeaponName)
+    if tool then
+        player.Character.Humanoid:EquipTool(tool)
+    end
+end
+
+-- [[ GIAO DIỆN CHUẨN ]] --
+local gui = Instance.new("ScreenGui", player.PlayerGui)
+gui.Name = "Migul_V4_Fixed"
+gui.ResetOnSpawn = false
+
+local main = Instance.new("Frame", gui)
+main.Size = UDim2.new(0, 580, 0, 380)
+main.Position = UDim2.new(0.5, -290, 0.5, -190)
+main.BackgroundColor3 = Color3.fromRGB(15, 17, 24)
+Instance.new("UICorner", main).CornerRadius = UDim.new(0, 12)
+
+-- Sidebar & Content
+local sidebar = Instance.new("ScrollingFrame", main)
+sidebar.Size = UDim2.new(0, 160, 1, -20); sidebar.Position = UDim2.new(0, 10, 0, 10)
+sidebar.BackgroundTransparency = 1; sidebar.ScrollBarThickness = 0
+Instance.new("UIListLayout", sidebar).Padding = UDim.new(0, 4)
+
+local content = Instance.new("ScrollingFrame", main)
+content.Size = UDim2.new(1, -190, 1, -20); content.Position = UDim2.new(0, 180, 0, 10)
+content.BackgroundTransparency = 1; content.ScrollBarThickness = 0
+Instance.new("UIListLayout", content).Padding = UDim.new(0, 8)
+
+-- [[ HÀM TẠO TAB & TOGGLE ]] --
+local function AddTab(name)
+    local btn = Instance.new("TextButton", sidebar)
+    btn.Size = UDim2.new(1, 0, 0, 32)
+    btn.BackgroundColor3 = Color3.fromRGB(25, 28, 38)
+    btn.Text = "  " .. name; btn.TextColor3 = Color3.new(1,1,1)
+    btn.TextXAlignment = 0; btn.Font = Enum.Font.Gotham; btn.TextSize = 13
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+    return btn
+end
+
+local function AddToggle(name, callback)
+    local f = Instance.new("Frame", content)
+    f.Size = UDim2.new(1, -10, 0, 45)
+    f.BackgroundColor3 = Color3.fromRGB(22, 25, 35)
+    Instance.new("UICorner", f).CornerRadius = UDim.new(0, 10)
+    
+    local label = Instance.new("TextLabel", f)
+    label.Text = name; label.Size = UDim2.new(1, -60, 1, 0); label.Position = UDim2.new(0, 15, 0, 0)
+    label.TextColor3 = Color3.new(1,1,1); label.BackgroundTransparency = 1; label.TextXAlignment = 0
+
+    local btn = Instance.new("TextButton", f)
+    btn.Size = UDim2.new(0, 26, 0, 26); btn.Position = UDim2.new(1, -40, 0.5, -13)
+    btn.BackgroundColor3 = Color3.fromRGB(45, 48, 60); btn.Text = ""
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(1, 0)
+
+    local active = false
+    btn.MouseButton1Click:Connect(function()
+        active = not active
+        btn.Text = active and "✓" or ""
+        btn.BackgroundColor3 = active and Color3.fromRGB(0, 180, 255) or Color3.fromRGB(45, 48, 60)
+        callback(active)
+    end)
+end
+
+-- [[ CÁC TAB ]] --
+AddTab("Tab Farming")
+AddToggle("Auto Farm Level", function(v)
+    _G.Settings.AutoFarm = v
+end)
+
+AddTab("Stack Farm")
+AddToggle("Fast Attack (S1)", function(v)
+    _G.Settings.FastAttack = v
+end)
+
+-- [[ LOOP CHỨC NĂNG (TRÁNH LỖI) ]] --
+task.spawn(function()
+    while task.wait() do
+        if _G.Settings.AutoFarm then
+            pcall(function()
+                local monster = nil
+                for _, v in pairs(workspace.Enemies:GetChildren()) do
+                    if v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
+                        monster = v
+                        break
+                    end
+                end
+
+                if monster then
+                    EquipWeapon()
+                    player.Character.HumanoidRootPart.CFrame = monster.HumanoidRootPart.CFrame * CFrame.new(0, _G.Settings.Distance, 0)
+                    VirtualUser:CaptureController()
+                    VirtualUser:Button1Down(Vector2.new(1280, 672))
+                end
+            end)
+        end
+    end
+end)
+
+-- Nút mở menu
+local open = Instance.new("TextButton", gui)
+open.Size = UDim2.new(0, 50, 0, 50); open.Position = UDim2.new(0, 15, 0, 15)
+open.Text = "MIGUL"; open.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
+Instance.new("UICorner", open).CornerRadius = UDim.new(1, 0)
+open.MouseButton1Click:Connect(function() main.Visible = not main.Visible end)
