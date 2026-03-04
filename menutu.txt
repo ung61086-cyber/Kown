@@ -1,0 +1,156 @@
+local Players = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local player = Players.LocalPlayer
+
+-- Kiểm tra xem GUI đã tồn tại chưa để tránh lỗi chạy đè
+if player.PlayerGui:FindFirstChild("Blox_Delta_Migul") then
+    player.PlayerGui.Blox_Delta_Migul:Destroy()
+end
+
+-- [[ GIAO DIỆN CHÍNH ]] --
+local gui = Instance.new("ScreenGui", player.PlayerGui)
+gui.Name = "Blox_Delta_Migul"
+gui.ResetOnSpawn = false
+
+local main = Instance.new("Frame", gui)
+main.Size = UDim2.new(0, 420, 0, 280) -- Kích thước nhỏ gọn cho mobile
+main.Position = UDim2.new(0.5, -210, 0.5, -140)
+main.BackgroundColor3 = Color3.fromRGB(13, 15, 22)
+main.BorderSizePixel = 0
+main.Active = true
+main.Draggable = true 
+
+local corner = Instance.new("UICorner", main)
+corner.CornerRadius = UDim.new(0, 15)
+
+-- Sidebar
+local sidebar = Instance.new("Frame", main)
+sidebar.Size = UDim2.new(0, 70, 1, 0)
+sidebar.BackgroundColor3 = Color3.fromRGB(18, 20, 28)
+sidebar.BorderSizePixel = 0
+Instance.new("UICorner", sidebar).CornerRadius = UDim.new(0, 15)
+
+-- Container cuộn nội dung
+local scroll = Instance.new("ScrollingFrame", main)
+scroll.Position = UDim2.new(0, 85, 0, 45)
+scroll.Size = UDim2.new(1, -95, 1, -55)
+scroll.BackgroundTransparency = 1
+scroll.ScrollBarThickness = 0
+local layout = Instance.new("UIListLayout", scroll)
+layout.Padding = UDim.new(0, 8)
+
+-- Tiêu đề
+local title = Instance.new("TextLabel", main)
+title.Position = UDim2.new(0, 85, 0, 10)
+title.Size = UDim2.new(0, 200, 0, 30)
+title.Text = "⚡ DELTA X MIGUL"
+title.TextColor3 = Color3.fromRGB(80, 150, 255)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 16
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.BackgroundTransparency = 1
+
+-- [[ HÀM TẠO NÚT BẤM (V) ]] --
+local function addToggle(name, callback)
+    local frame = Instance.new("Frame", scroll)
+    frame.Size = UDim2.new(1, -5, 0, 45)
+    frame.BackgroundColor3 = Color3.fromRGB(25, 30, 45)
+    frame.BackgroundTransparency = 0.4
+    Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 22)
+
+    local label = Instance.new("TextLabel", frame)
+    label.Size = UDim2.new(1, -50, 1, 0)
+    label.Position = UDim2.new(0, 15, 0, 0)
+    label.Text = name
+    label.TextColor3 = Color3.new(1, 1, 1)
+    label.Font = Enum.Font.Gotham
+    label.TextSize = 13
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.BackgroundTransparency = 1
+
+    local check = Instance.new("TextButton", frame)
+    check.Size = UDim2.new(0, 28, 0, 28)
+    check.Position = UDim2.new(1, -38, 0.5, -14)
+    check.BackgroundColor3 = Color3.fromRGB(40, 45, 60)
+    check.Text = ""
+    check.TextColor3 = Color3.new(1, 1, 1)
+    Instance.new("UICorner", check).CornerRadius = UDim.new(1, 0)
+
+    local active = false
+    check.MouseButton1Click:Connect(function()
+        active = not active
+        check.BackgroundColor3 = active and Color3.fromRGB(60, 120, 255) or Color3.fromRGB(40, 45, 60)
+        check.Text = active and "✓" or ""
+        callback(active)
+    end)
+end
+
+-- [[ TÍNH NĂNG ]] --
+
+-- 1. Auto Farm
+addToggle("Auto Farm Level", function(state)
+    _G.AutoFarm = state
+    while _G.AutoFarm do
+        -- Logic: Tìm quái và di chuyển nhân vật (Tween)
+        task.wait(1)
+    end
+end)
+
+-- 2. Auto Click (Virtual User)
+addToggle("Auto Click", function(state)
+    _G.AutoClick = state
+    task.spawn(function()
+        while _G.AutoClick do
+            local vu = game:GetService("VirtualUser")
+            vu:Button1Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+            task.wait(0.1)
+        end
+    end)
+end)
+
+-- 3. Teleport Đảo Khỉ (Dịch chuyển mẫu)
+addToggle("TP Đảo Khỉ", function(state)
+    if state then
+        local target = CFrame.new(-1612, 36, 147) -- Tọa độ đảo khỉ mẫu
+        pcall(function()
+            player.Character.HumanoidRootPart.CFrame = target
+        end)
+    end
+end)
+
+-- 4. ESP Người chơi
+addToggle("Player ESP", function(state)
+    for _, v in pairs(Players:GetPlayers()) do
+        if v ~= player and v.Character and v.Character:FindFirstChild("Head") then
+            if state then
+                local b = Instance.new("BillboardGui", v.Character.Head)
+                b.Name = "DeltaESP"
+                b.AlwaysOnTop = true
+                b.Size = UDim2.new(0, 100, 0, 20)
+                local t = Instance.new("TextLabel", b)
+                t.Size = UDim2.new(1, 0, 1, 0)
+                t.Text = v.Name
+                t.TextColor3 = Color3.new(1, 0, 0)
+                t.BackgroundTransparency = 1
+            else
+                if v.Character.Head:FindFirstChild("DeltaESP") then
+                    v.Character.Head.DeltaESP:Destroy()
+                end
+            end
+        end
+    end
+end)
+
+-- Nút đóng/mở nhanh cho Mobile (Nút nổi)
+local toggleBtn = Instance.new("TextButton", gui)
+toggleBtn.Size = UDim2.new(0, 50, 0, 50)
+toggleBtn.Position = UDim2.new(0, 10, 0, 10)
+toggleBtn.Text = "OPEN"
+toggleBtn.BackgroundColor3 = Color3.fromRGB(60, 120, 255)
+Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(1, 0)
+
+toggleBtn.MouseButton1Click:Connect(function()
+    main.Visible = not main.Visible
+    toggleBtn.Text = main.Visible and "CLOSE" or "OPEN"
+end)
