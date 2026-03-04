@@ -1,0 +1,154 @@
+local Players = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local player = Players.LocalPlayer
+
+-- [[ CẤU HÌNH HỆ THỐNG ]] --
+_G.Config = {
+    AutoFarm = false,
+    FastAttack = false,
+    ESP = false,
+    Distance = 8 -- Khoảng cách đứng trên đầu quái
+}
+
+-- [[ HÀM TÌM QUÁI GẦN NHẤT ]] --
+local function GetMonster()
+    local target = nil
+    local dist = math.huge
+    for _, v in pairs(workspace.Enemies:GetChildren()) do
+        if v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 and v:FindFirstChild("HumanoidRootPart") then
+            local d = (player.Character.HumanoidRootPart.Position - v.HumanoidRootPart.Position).Magnitude
+            if d < dist then
+                dist = d
+                target = v
+            end
+        end
+    end
+    return target
+end
+
+-- [[ HÀM DỊCH CHUYỂN AN TOÀN ]] --
+local function TP(cf)
+    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+        local distance = (player.Character.HumanoidRootPart.Position - cf.Position).Magnitude
+        local speed = 350 -- Tốc độ bay chuẩn
+        TweenService:Create(player.Character.HumanoidRootPart, TweenInfo.new(distance/speed, Enum.EasingStyle.Linear), {CFrame = cf}):Play()
+    end
+end
+
+-- [[ GIAO DIỆN CHUẨN MIGUL S2/S3 ]] --
+local gui = Instance.new("ScreenGui", player.PlayerGui)
+gui.Name = "Migul_V4_ChinhSua"
+
+local main = Instance.new("Frame", gui)
+main.Size = UDim2.new(0, 480, 0, 320)
+main.Position = UDim2.new(0.5, -240, 0.5, -160)
+main.BackgroundColor3 = Color3.fromRGB(13, 15, 22)
+Instance.new("UICorner", main).CornerRadius = UDim.new(0, 15)
+
+-- Sidebar & Scroll
+local scroll = Instance.new("ScrollingFrame", main)
+scroll.Position = UDim2.new(0, 95, 0, 50)
+scroll.Size = UDim2.new(1, -110, 1, -65)
+scroll.BackgroundTransparency = 1
+scroll.ScrollBarThickness = 0
+Instance.new("UIListLayout", scroll).Padding = UDim.new(0, 8)
+
+local title = Instance.new("TextLabel", main)
+title.Text = "⚡ MIGUL BLOX FRUITS V4"; title.TextColor3 = Color3.fromRGB(80, 150, 255)
+title.Position = UDim2.new(0, 95, 0, 15); title.Size = UDim2.new(0, 200, 0, 30)
+title.BackgroundTransparency = 1; title.Font = Enum.Font.GothamBold; title.TextXAlignment = 0
+
+-- [[ NÚT BẤM (V) ]] --
+local function addToggle(name, callback)
+    local f = Instance.new("Frame", scroll)
+    f.Size = UDim2.new(1, -5, 0, 45)
+    f.BackgroundColor3 = Color3.fromRGB(25, 30, 45)
+    f.BackgroundTransparency = 0.5
+    Instance.new("UICorner", f).CornerRadius = UDim.new(0, 20)
+
+    local btn = Instance.new("TextButton", f)
+    btn.Size = UDim2.new(0, 28, 0, 28); btn.Position = UDim2.new(1, -38, 0.5, -14)
+    btn.Text = ""; btn.BackgroundColor3 = Color3.fromRGB(40, 45, 60)
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(1, 0)
+
+    local l = Instance.new("TextLabel", f)
+    l.Text = name; l.Size = UDim2.new(1,-60,1,0); l.Position = UDim2.new(0,15,0,0)
+    l.TextColor3 = Color3.new(1,1,1); l.BackgroundTransparency = 1; l.TextXAlignment = 0
+
+    local active = false
+    btn.MouseButton1Click:Connect(function()
+        active = not active
+        btn.Text = active and "✓" or ""
+        btn.BackgroundColor3 = active and Color3.fromRGB(0, 200, 255) or Color3.fromRGB(40, 45, 60)
+        callback(active)
+    end)
+end
+
+-- [[ LẤP ĐẦY CHỨC NĂNG ]] --
+
+-- 1. Auto Farm Level
+addToggle("Auto Farm Level", function(v)
+    _G.Config.AutoFarm = v
+    task.spawn(function()
+        while _G.Config.AutoFarm do
+            pcall(function()
+                local monster = GetMonster()
+                if monster then
+                    -- Bay tới quái
+                    player.Character.HumanoidRootPart.CFrame = monster.HumanoidRootPart.CFrame * CFrame.new(0, _G.Config.Distance, 0)
+                    -- Auto Click
+                    game:GetService("VirtualUser"):CaptureController()
+                    game:GetService("VirtualUser"):Button1Down(Vector2.new(1280, 672))
+                end
+            end)
+            task.wait()
+        end
+    end)
+end)
+
+-- 2. Fast Attack (No Animation)
+addToggle("Fast Attack (S1)", function(v)
+    _G.Config.FastAttack = v
+    task.spawn(function()
+        while _G.Config.FastAttack do
+            pcall(function()
+                local combat = player.Character:FindFirstChildOfClass("Tool")
+                if combat then combat:Activate() end
+            end)
+            task.wait(0.05)
+        end
+    end)
+end)
+
+-- 3. Teleport Sea
+local function addTPGroup(txt)
+    local l = Instance.new("TextLabel", scroll)
+    l.Size = UDim2.new(1,0,0,25); l.Text = "--- "..txt.." ---"; l.TextColor3 = Color3.fromRGB(0,255,200)
+    l.BackgroundTransparency = 1; l.Font = Enum.Font.GothamBold
+end
+
+local function addTPBtn(name, cf)
+    local b = Instance.new("TextButton", scroll)
+    b.Size = UDim2.new(1,-10,0,35); b.Text = name; b.BackgroundColor3 = Color3.fromRGB(35,40,55)
+    b.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", b)
+    b.MouseButton1Click:Connect(function() TP(cf) end)
+end
+
+addTPGroup("SEA 1")
+addTPBtn("Jungle (Đảo Khỉ)", CFrame.new(-1612, 36, 147))
+addTPBtn("Snow Island", CFrame.new(1186, 6, -1157))
+
+addTPGroup("SEA 2")
+addTPBtn("Cafe", CFrame.new(-380, 77, 1845))
+
+addTPGroup("SEA 3")
+addTPBtn("Mansion (Dinh Thự)", CFrame.new(-12463, 374, -7523))
+
+-- [[ NÚT MỞ MENU ]] --
+local open = Instance.new("TextButton", gui)
+open.Size = UDim2.new(0,50,0,50); open.Position = UDim2.new(0,10,0,10)
+open.Text = "MIGUL"; open.BackgroundColor3 = Color3.fromRGB(0, 200, 255)
+Instance.new("UICorner", open).CornerRadius = UDim.new(1,0)
+open.MouseButton1Click:Connect(function() main.Visible = not main.Visible end)
