@@ -1,0 +1,105 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Camera = workspace.CurrentCamera
+local player = Players.LocalPlayer
+
+-- [[ CẤU HÌNH HỆ THỐNG ]] --
+_G.PVP_Settings = {
+    AutoClick = false,
+    HitboxSize = 25,
+    Aimlock = false,
+    EspHead = false,
+    EspBox = false,
+    EspLine = false,
+    WaterWalk = false,
+    WeaponName = "Combat" -- Thay bằng tên vũ khí bạn dùng (VD: "Lôi Trảo")
+}
+
+-- [[ HÀM TÌM NGƯỜI CHƠI GẦN NHẤT ]] --
+local function GetClosestPlayer()
+    local target, dist = nil, math.huge
+    for _, v in pairs(Players:GetPlayers()) do
+        if v ~= player and v.Character and v.Character:FindFirstChild("HumanoidRootPart") and v.Character.Humanoid.Health > 0 then
+            local d = (player.Character.HumanoidRootPart.Position - v.Character.HumanoidRootPart.Position).Magnitude
+            if d < dist then dist = d; target = v end
+        end
+    end
+    return target
+end
+
+-- [[ HÀM VẼ ESP (LINE TOP, BOX, HEAD) ]] --
+local function CreateVisuals(target)
+    local Line = Drawing.new("Line")
+    local Box = Drawing.new("Square")
+    local HeadCircle = Drawing.new("Circle")
+    
+    RunService.RenderStepped:Connect(function()
+        if target.Character and target.Character:FindFirstChild("HumanoidRootPart") and target.Character.Humanoid.Health > 0 then
+            local Root = target.Character.HumanoidRootPart
+            local Head = target.Character:FindFirstChild("Head")
+            local Pos, OnScreen = Camera:WorldToViewportPoint(Root.Position)
+            
+            if OnScreen then
+                -- 1. ESP Line (Từ đỉnh màn hình trỏ xuống)
+                Line.Visible = _G.PVP_Settings.EspLine
+                Line.From = Vector2.new(Camera.ViewportSize.X / 2, 0)
+                Line.To = Vector2.new(Pos.X, Pos.Y)
+                Line.Color = Color3.fromRGB(0, 255, 255)
+                Line.Thickness = 1
+                
+                -- 2. ESP Box
+                Box.Visible = _G.PVP_Settings.EspBox
+                Box.Size = Vector2.new(2000 / Pos.Z, 3000 / Pos.Z)
+                Box.Position = Vector2.new(Pos.X - Box.Size.X / 2, Pos.Y - Box.Size.Y / 2)
+                Box.Color = Color3.fromRGB(255, 0, 0)
+                
+                -- 3. ESP Head
+                if Head then
+                    local HeadPos = Camera:WorldToViewportPoint(Head.Position)
+                    HeadCircle.Visible = _G.PVP_Settings.EspHead
+                    HeadCircle.Position = Vector2.new(HeadPos.X, HeadPos.Y)
+                    HeadCircle.Radius = 500 / Pos.Z
+                    HeadCircle.Color = Color3.fromRGB(0, 255, 0)
+                end
+            else
+                Line.Visible = false; Box.Visible = false; HeadCircle.Visible = false
+            end
+        else
+            Line.Visible = false; Box.Visible = false; HeadCircle.Visible = false
+        end
+    end)
+end
+
+-- Áp dụng cho toàn bộ server
+for _, v in pairs(Players:GetPlayers()) do if v ~= player then CreateVisuals(v) end end
+Players.PlayerAdded:Connect(function(v) if v ~= player then CreateVisuals(v) end end)
+
+-- [[ LOGIC PVP & WATER WALK ]] --
+RunService.RenderStepped:Connect(function()
+    -- Hitbox & Aimlock
+    local target = GetClosestPlayer()
+    if _G.PVP_Settings.AutoClick and target then
+        target.Character.HumanoidRootPart.Size = Vector3.new(_G.PVP_Settings.HitboxSize, _G.PVP_Settings.HitboxSize, _G.PVP_Settings.HitboxSize)
+        target.Character.HumanoidRootPart.Transparency = 0.7
+        target.Character.HumanoidRootPart.CanCollide = false
+    end
+    if _G.PVP_Settings.Aimlock and target then
+        Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Character.HumanoidRootPart.Position)
+    end
+    
+    -- Walk on Water (Đi dưới nước không mất máu)
+    pcall(function()
+        if workspace:FindFirstChild("Sea") then
+            workspace.Sea.CanCollide = _G.PVP_Settings.WaterWalk
+        end
+    end)
+end)
+
+-- [[ GIAO DIỆN TÍCH HỢP ]] --
+-- Bạn sử dụng các hàm AddToggle này vào Menu chính của mình
+AddToggle("Auto Click & Hitbox", function(v) _G.PVP_Settings.AutoClick = v end)
+AddToggle("Aimlock (Auto Aim)", function(v) _G.PVP_Settings.Aimlock = v end)
+AddToggle("ESP Line (Top)", function(v) _G.PVP_Settings.EspLine = v end)
+AddToggle("ESP Box", function(v) _G.PVP_Settings.EspBox = v end)
+AddToggle("ESP Head", function(v) _G.PVP_Settings.EspHead = v end)
+AddToggle("Walk on Water", function(v) _G.PVP_Settings.WaterWalk = v end)
