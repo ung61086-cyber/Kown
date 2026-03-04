@@ -1,4 +1,4 @@
--- [[ MIGUL V4  ]] --
+-- [[ MIGUL V4 - FINAL CLEAN VERSION ]] --
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local Camera = workspace.CurrentCamera
@@ -11,10 +11,20 @@ _G.PVP_Settings = {
     HitboxSize = 25,
     TP_Kill = false,
     TP_Offset = Vector3.new(0, 0, 3),
-    FOV_Value = 70
+    FOV_Value = 70,
+    AimCircle = false,
+    CircleRadius = 0 
 }
 
--- [[ 1. KHỞI TẠO GIAO DIỆN (UI) ]] --
+-- [[ 1. KHỞI TẠO VÒNG TRÒN AIM ]] --
+local AimCircle = Drawing.new("Circle")
+AimCircle.Color = Color3.fromRGB(255, 255, 255)
+AimCircle.Thickness = 1
+AimCircle.Filled = false
+AimCircle.Transparency = 0.8
+AimCircle.Visible = false
+
+-- [[ 2. KHỞI TẠO GIAO DIỆN (UI) ]] --
 local gui = Instance.new("ScreenGui", player.PlayerGui)
 gui.Name = "Migul_V4_Final"
 gui.ResetOnSpawn = false
@@ -26,7 +36,6 @@ mainFrame.BackgroundColor3 = Color3.fromRGB(15, 17, 24)
 mainFrame.Visible = false
 Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 12)
 
--- Label hiện số người (Server Info)
 local serverStats = Instance.new("TextLabel", mainFrame)
 serverStats.Size = UDim2.new(1, 0, 0, 30)
 serverStats.Position = UDim2.new(0, 0, 0, 10)
@@ -42,7 +51,7 @@ scroll.BackgroundTransparency = 1
 scroll.ScrollBarThickness = 2
 Instance.new("UIListLayout", scroll).Padding = UDim.new(0, 8)
 
--- [[ 2. NÚT MỞ MENU (FLOATING) ]] --
+-- [[ 3. NÚT MỞ MENU ]] --
 local openBtn = Instance.new("TextButton", gui)
 openBtn.Size = UDim2.new(0, 50, 0, 50)
 openBtn.Position = UDim2.new(0, 15, 0, 15)
@@ -59,7 +68,7 @@ openBtn.MouseButton1Click:Connect(function()
     openBtn.BackgroundColor3 = mainFrame.Visible and Color3.fromRGB(255, 50, 50) or Color3.fromRGB(0, 180, 255)
 end)
 
--- [[ 3. HÀM TẠO TOGGLE ]] --
+-- [[ 4. HÀM TẠO TOGGLE ]] --
 local function CreateToggle(name, callback)
     local btn = Instance.new("TextButton", scroll)
     btn.Size = UDim2.new(1, -5, 0, 40)
@@ -78,9 +87,9 @@ local function CreateToggle(name, callback)
     end)
 end
 
--- [[ 4. LOGIC CHỨC NĂNG TỔNG HỢP ]] --
+-- [[ 5. LOGIC CHỨC NĂNG TỔNG HỢP (QUAN TRỌNG) ]] --
 
--- Cập nhật Server Info
+-- Cập nhật Server Stats
 local function UpdateStats()
     serverStats.Text = "SERVER: " .. #Players:GetPlayers() .. "/" .. Players.MaxPlayers .. " Players"
 end
@@ -107,33 +116,44 @@ end
 for _, v in pairs(Players:GetPlayers()) do if v ~= player then CreateESPLine(v) end end
 Players.PlayerAdded:Connect(function(v) if v ~= player then CreateESPLine(v) end end)
 
--- Hitbox & TP Kill & FOV
+-- VÒNG LẶP CHÍNH (Hitbox, TP, FOV, Circle)
 RunService.RenderStepped:Connect(function()
     -- Giữ FOV
     Camera.FieldOfView = _G.PVP_Settings.FOV_Value
 
+    -- Logic Vòng Tròn Aim
+    if _G.PVP_Settings.AimCircle and _G.PVP_Settings.CircleRadius > 0 then
+        AimCircle.Visible = true
+        AimCircle.Radius = _G.PVP_Settings.CircleRadius
+        AimCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+    else
+        AimCircle.Visible = false
+    end
+
+    -- Hitbox & Tìm mục tiêu TP
     local target, dist = nil, math.huge
     for _, v in pairs(Players:GetPlayers()) do
         if v ~= player and v.Character and v.Character:FindFirstChild("HumanoidRootPart") and v.Character.Humanoid.Health > 0 then
-            -- Logic Hitbox
+            -- Hitbox
             if _G.PVP_Settings.HitboxEnabled then
                 local hrp = v.Character.HumanoidRootPart
                 hrp.Size = Vector3.new(_G.PVP_Settings.HitboxSize, _G.PVP_Settings.HitboxSize, _G.PVP_Settings.HitboxSize)
                 hrp.Transparency = 0.7
                 hrp.CanCollide = false
             end
-            -- Tìm đứa gần nhất để TP
+            -- Tìm khoảng cách
             local d = (player.Character.HumanoidRootPart.Position - v.Character.HumanoidRootPart.Position).Magnitude
             if d < dist then dist = d; target = v end
         end
     end
-    -- Logic TP Kill
+
+    -- TP Kill
     if _G.PVP_Settings.TP_Kill and target then
         player.Character.HumanoidRootPart.CFrame = target.Character.HumanoidRootPart.CFrame * CFrame.new(_G.PVP_Settings.TP_Offset)
     end
 end)
 
--- [[ 5. THANH MÁU CẠNH PHẢI ]] --
+-- [[ 6. THANH MÁU CẠNH PHẢI ]] --
 local healthGui = Instance.new("ScreenGui", player.PlayerGui)
 local healthBack = Instance.new("Frame", healthGui)
 healthBack.Size = UDim2.new(0, 15, 0, 200)
@@ -157,10 +177,22 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- [[ 6. KẾT NỐI NÚT BẤM ]] --
+-- [[ 7. KẾT NỐI NÚT BẤM ]] --
 CreateToggle("ESP Line (Top)", function(s) _G.PVP_Settings.EspLine = s end)
-CreateToggle("Hitbox Pro (Big)", function(s) _G.PVP_Settings.HitboxEnabled = s end)
+CreateToggle("Hitbox Pro (Big Body)", function(s) _G.PVP_Settings.HitboxEnabled = s end)
 CreateToggle("TP Kill (Tốc Biến)", function(s) _G.PVP_Settings.TP_Kill = s end)
-CreateToggle("High FOV (Tầm nhìn xa)", function(s) 
-    _G.PVP_Settings.FOV_Value = s and 110 or 70 
+CreateToggle("High FOV (Tầm nhìn xa)", function(s) _G.PVP_Settings.FOV_Value = s and 110 or 70 end)
+
+-- Nút Chỉnh Vòng Aim 0-100 (Gộp chung logic)
+CreateToggle("Chỉnh Vòng Aim (0-100)", function(state)
+    _G.PVP_Settings.AimCircle = state
+    if state then
+        if _G.PVP_Settings.CircleRadius >= 100 then
+            _G.PVP_Settings.CircleRadius = 0
+        else
+            _G.PVP_Settings.CircleRadius = _G.PVP_Settings.CircleRadius + 25 -- Mỗi lần bấm tăng 25 đơn vị
+        end
+    else
+        _G.PVP_Settings.CircleRadius = 0
+    end
 end)
