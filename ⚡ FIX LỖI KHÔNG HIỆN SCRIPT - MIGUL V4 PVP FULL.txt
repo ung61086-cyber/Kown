@@ -1,0 +1,98 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Camera = workspace.CurrentCamera
+local player = Players.LocalPlayer
+
+-- [[ KHỞI TẠO CẤU HÌNH ]] --
+_G.PVP_Settings = {
+    AutoClick = false,
+    HitboxSize = 25,
+    Aimlock = false,
+    EspHead = false,
+    EspBox = false,
+    EspLine = false,
+    WaterWalk = false,
+    WeaponName = "Combat" -- Thay bằng tên vũ khí bạn đang dùng
+}
+
+-- [[ GIAO DIỆN CHÍNH - PHẢI HIỆN ]] --
+local gui = Instance.new("ScreenGui", player.PlayerGui)
+gui.Name = "Migul_PVP_Fixed"
+gui.ResetOnSpawn = false -- Giữ menu không bị mất khi chết
+
+local main = Instance.new("Frame", gui)
+main.Size = UDim2.new(0, 400, 0, 300)
+main.Position = UDim2.new(0.5, -200, 0.5, -150)
+main.BackgroundColor3 = Color3.fromRGB(15, 17, 24) -- Màu tối chuẩn
+Instance.new("UICorner", main).CornerRadius = UDim.new(0, 12)
+
+local scroll = Instance.new("ScrollingFrame", main)
+scroll.Size = UDim2.new(1, -20, 1, -50)
+scroll.Position = UDim2.new(0, 10, 0, 40)
+scroll.BackgroundTransparency = 1
+scroll.ScrollBarThickness = 2
+Instance.new("UIListLayout", scroll).Padding = UDim.new(0, 8)
+
+-- [[ HÀM TẠO NÚT BẬT/TẮT ]] --
+local function AddToggle(name, callback)
+    local btn = Instance.new("TextButton", scroll)
+    btn.Size = UDim2.new(1, -5, 0, 40)
+    btn.BackgroundColor3 = Color3.fromRGB(30, 33, 45)
+    btn.Text = "  " .. name
+    btn.TextColor3 = Color3.new(1,1,1)
+    btn.TextXAlignment = 0
+    btn.Font = Enum.Font.Gotham
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
+
+    local active = false
+    btn.MouseButton1Click:Connect(function()
+        active = not active
+        btn.BackgroundColor3 = active and Color3.fromRGB(0, 180, 255) or Color3.fromRGB(30, 33, 45)
+        callback(active)
+    end)
+end
+
+-- [[ LẤP ĐẦY TÍNH NĂNG THEO ẢNH/VIDEO ]] --
+AddToggle("Auto Click & Hitbox", function(v) _G.PVP_Settings.AutoClick = v end)
+AddToggle("Aimlock (Auto Aim)", function(v) _G.PVP_Settings.Aimlock = v end)
+AddToggle("ESP Line (Top)", function(v) _G.PVP_Settings.EspLine = v end)
+AddToggle("ESP Box", function(v) _G.PVP_Settings.EspBox = v end)
+AddToggle("Walk on Water", function(v) _G.PVP_Settings.WaterWalk = v end)
+
+-- [[ LOGIC ESP LINE TỪ ĐỈNH MÀN HÌNH ]] --
+local function CreateESP(target)
+    local Line = Drawing.new("Line")
+    RunService.RenderStepped:Connect(function()
+        if target.Character and target.Character:FindFirstChild("HumanoidRootPart") and _G.PVP_Settings.EspLine then
+            local Pos, OnScreen = Camera:WorldToViewportPoint(target.Character.HumanoidRootPart.Position)
+            if OnScreen then
+                Line.Visible = true
+                Line.From = Vector2.new(Camera.ViewportSize.X / 2, 0) -- Từ đỉnh màn hình
+                Line.To = Vector2.new(Pos.X, Pos.Y)
+                Line.Color = Color3.new(0, 1, 1)
+                Line.Thickness = 1
+            else Line.Visible = false end
+        else Line.Visible = false end
+    end)
+end
+
+for _, v in pairs(Players:GetPlayers()) do if v ~= player then CreateESP(v) end end
+
+-- [[ LOGIC ĐI TRÊN NƯỚC ]] --
+task.spawn(function()
+    while task.wait() do
+        pcall(function()
+            if workspace:FindFirstChild("Sea") then
+                workspace.Sea.CanCollide = _G.PVP_Settings.WaterWalk
+            end
+        end)
+    end
+end)
+
+-- Nút mở menu
+local open = Instance.new("TextButton", gui)
+open.Size = UDim2.new(0, 50, 0, 50); open.Position = UDim2.new(0, 15, 0, 15)
+open.Text = "MIGUL"
+open.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
+Instance.new("UICorner", open).CornerRadius = UDim.new(1, 0)
+open.MouseButton1Click:Connect(function() main.Visible = not main.Visible end)
