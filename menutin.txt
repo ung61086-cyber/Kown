@@ -1,0 +1,174 @@
+-- [[ SERVICES ]] --
+local Players = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local player = Players.LocalPlayer
+local camera = workspace.CurrentCamera
+
+-- [[ KIỂM TRA CHẠY TRÙNG ]] --
+if player.PlayerGui:FindFirstChild("Migul_V3_Final") then
+    player.PlayerGui.Migul_V3_Final:Destroy()
+end
+
+-- [[ GIAO DIỆN CHÍNH ]] --
+local gui = Instance.new("ScreenGui", player.PlayerGui)
+gui.Name = "Migul_V3_Final"
+gui.ResetOnSpawn = false
+
+local main = Instance.new("Frame", gui)
+main.Size = UDim2.new(0, 480, 0, 320)
+main.Position = UDim2.new(0.5, -240, 0.5, -160)
+main.BackgroundColor3 = Color3.fromRGB(13, 15, 22)
+main.BorderSizePixel = 0
+main.Active = true
+main.Draggable = true
+Instance.new("UICorner", main).CornerRadius = UDim.new(0, 15)
+
+-- Sidebar
+local sidebar = Instance.new("Frame", main)
+sidebar.Size = UDim2.new(0, 80, 1, 0)
+sidebar.BackgroundColor3 = Color3.fromRGB(18, 20, 28)
+sidebar.BorderSizePixel = 0
+Instance.new("UICorner", sidebar).CornerRadius = UDim.new(0, 15)
+
+-- Container cuộn
+local scroll = Instance.new("ScrollingFrame", main)
+scroll.Position = UDim2.new(0, 90, 0, 50)
+scroll.Size = UDim2.new(1, -100, 1, -60)
+scroll.BackgroundTransparency = 1
+scroll.ScrollBarThickness = 2
+scroll.CanvasSize = UDim2.new(0, 0, 2, 0)
+local layout = Instance.new("UIListLayout", scroll)
+layout.Padding = UDim.new(0, 8)
+
+-- Tiêu đề
+local title = Instance.new("TextLabel", main)
+title.Position = UDim2.new(0, 90, 0, 10)
+title.Size = UDim2.new(0, 200, 0, 30)
+title.Text = "⚡ MIGUL V3 - BLOX FRUITS"
+title.TextColor3 = Color3.fromRGB(80, 150, 255)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 16
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.BackgroundTransparency = 1
+
+-- [[ BIẾN ĐIỀU KHIỂN ]] --
+_G.AutoFarm = false
+_G.ESP_Enabled = false
+
+-- [[ HÀM TẠO NÚT TÍCH (V) - GIỐNG ẢNH 1 ]] --
+local function addToggle(name, callback)
+    local f = Instance.new("Frame", scroll)
+    f.Size = UDim2.new(1, -10, 0, 45)
+    f.BackgroundColor3 = Color3.fromRGB(25, 30, 45)
+    f.BackgroundTransparency = 0.5
+    Instance.new("UICorner", f).CornerRadius = UDim.new(0, 22)
+
+    local l = Instance.new("TextLabel", f)
+    l.Size = UDim2.new(1, -60, 1, 0); l.Position = UDim2.new(0, 20, 0, 0)
+    l.Text = name; l.TextColor3 = Color3.new(1,1,1); l.BackgroundTransparency = 1; l.TextXAlignment = 0
+    l.Font = Enum.Font.Gotham
+
+    local btn = Instance.new("TextButton", f)
+    btn.Size = UDim2.new(0, 30, 0, 30); btn.Position = UDim2.new(1, -40, 0.5, -15)
+    btn.BackgroundColor3 = Color3.fromRGB(40, 45, 60); btn.Text = ""
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(1, 0)
+
+    local active = false
+    btn.MouseButton1Click:Connect(function()
+        active = not active
+        btn.BackgroundColor3 = active and Color3.fromRGB(60, 120, 255) or Color3.fromRGB(40, 45, 60)
+        btn.Text = active and "✓" or ""
+        callback(active)
+    end)
+end
+
+-- [[ HÀM DỊCH CHUYỂN (TWEEN) ]] --
+local function Teleport(cf)
+    local char = player.Character
+    if char and char:FindFirstChild("HumanoidRootPart") then
+        local p1 = char.HumanoidRootPart.Position
+        local p2 = cf.Position
+        local dist = (p1 - p2).Magnitude
+        TweenService:Create(char.HumanoidRootPart, TweenInfo.new(dist/250, Enum.EasingStyle.Linear), {CFrame = cf}):Play()
+    end
+end
+
+-- [[ HÀM ESP (S1, S2, S3) ]] --
+local function ApplyESP(v)
+    if v == player then return end
+    local Line = Drawing.new("Line")
+    local Box = Drawing.new("Square")
+    local Name = Drawing.new("Text")
+
+    RunService.RenderStepped:Connect(function()
+        if _G.ESP_Enabled and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
+            local Pos, OnScreen = camera:WorldToViewportPoint(v.Character.HumanoidRootPart.Position)
+            if OnScreen then
+                -- Line S1
+                Line.Visible = true
+                Line.From = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y)
+                Line.To = Vector2.new(Pos.X, Pos.Y)
+                Line.Color = Color3.fromRGB(0, 255, 150)
+                Line.Thickness = 1
+                -- Box S2
+                Box.Visible = true
+                Box.Size = Vector2.new(2000/Pos.Z, 3000/Pos.Z)
+                Box.Position = Vector2.new(Pos.X - Box.Size.X/2, Pos.Y - Box.Size.Y/2)
+                Box.Color = Color3.fromRGB(0, 255, 150)
+                -- Name S3
+                Name.Visible = true
+                Name.Text = v.Name .. " [Lv." .. (v:FindFirstChild("Data") and v.Data.Level.Value or "???") .. "]"
+                Name.Position = Vector2.new(Pos.X, Pos.Y - Box.Size.Y/2 - 15)
+                Name.Center = true; Name.Outline = true; Name.Color = Color3.new(1,1,1)
+            else
+                Line.Visible = false; Box.Visible = false; Name.Visible = false
+            end
+        else
+            Line.Visible = false; Box.Visible = false; Name.Visible = false
+        end
+    end)
+end
+
+-- [[ TÍNH NĂNG CHÍNH ]] --
+addToggle("Auto Farm Level", function(v) _G.AutoFarm = v end)
+
+addToggle("Full ESP (Line/Box/Name)", function(v)
+    _G.ESP_Enabled = v
+    if v then
+        for _, p in pairs(Players:GetPlayers()) do ApplyESP(p) end
+    end
+end)
+
+-- [[ PHẦN TELEPORT SEA 1, 2, 3 ]] --
+local function addTPTitle(txt)
+    local l = Instance.new("TextLabel", scroll)
+    l.Size = UDim2.new(1,0,0,30); l.Text = "--- "..txt.." ---"; l.TextColor3 = Color3.fromRGB(0,255,150)
+    l.BackgroundTransparency = 1; l.Font = Enum.Font.GothamBold
+end
+
+local function addTPButton(name, cf)
+    local b = Instance.new("TextButton", scroll)
+    b.Size = UDim2.new(1,-10,0,35); b.BackgroundColor3 = Color3.fromRGB(30,35,50)
+    b.Text = "Go to "..name; b.TextColor3 = Color3.new(1,1,1)
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0,10)
+    b.MouseButton1Click:Connect(function() Teleport(cf) end)
+end
+
+addTPTitle("SEA 1")
+addTPButton("Jungle", CFrame.new(-1612, 36, 147))
+addTPButton("Snow Island", CFrame.new(1186, 6, -1157))
+
+addTPTitle("SEA 2")
+addTPButton("Kingdom of Rose", CFrame.new(-426, 72, 1836))
+
+addTPTitle("SEA 3")
+addTPButton("Turtle Island", CFrame.new(-13274, 531, -7579))
+
+-- Nút nổi mở Menu (Cho Delta Mobile)
+local openBtn = Instance.new("TextButton", gui)
+openBtn.Size = UDim2.new(0,50,0,50); openBtn.Position = UDim2.new(0,10,0,10)
+openBtn.BackgroundColor3 = Color3.fromRGB(60,120,255); openBtn.Text = "MIGUL"
+Instance.new("UICorner", openBtn).CornerRadius = UDim.new(1,0)
+openBtn.MouseButton1Click:Connect(function() main.Visible = not main.Visible end)
