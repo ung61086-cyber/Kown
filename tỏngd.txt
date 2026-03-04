@@ -1,4 +1,4 @@
--- [[ MIGUL V4 - ALL-IN-ONE EDITION ]] --
+-- [[ MIGUL V4 - CLEAN & ULTIMATE ]] --
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local Camera = workspace.CurrentCamera
@@ -16,10 +16,10 @@ _G.PVP_Settings = {
     AimCircle = false,
     CircleRadius = 0,
     Aimbot = false,
-    AimPart = "HumanoidRootPart"
+    AimPart = "HumanoidRootPart" -- "Head" hoặc "HumanoidRootPart"
 }
 
--- [[ 1. KHỞI TẠO DRAWING (Vòng tròn & FOV) ]] --
+-- [[ 1. KHỞI TẠO VÒNG TRÒN AIM ]] --
 local AimCircle = Drawing.new("Circle")
 AimCircle.Color = Color3.fromRGB(255, 255, 255)
 AimCircle.Thickness = 1.5
@@ -32,7 +32,6 @@ local function CreateESP(target)
     local Line = Drawing.new("Line")
     local Box = Drawing.new("Square")
     Box.Thickness = 1
-    Box.Filled = false
     Box.Color = Color3.fromRGB(255, 0, 0)
     
     RunService.RenderStepped:Connect(function()
@@ -41,15 +40,13 @@ local function CreateESP(target)
             local screenPos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
 
             if onScreen then
-                -- ESP Line
                 if _G.PVP_Settings.EspLine then
                     Line.Visible = true
-                    Line.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y) -- Line từ dưới lên cho đẹp
+                    Line.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
                     Line.To = Vector2.new(screenPos.X, screenPos.Y)
                     Line.Color = Color3.new(0, 1, 1)
                 else Line.Visible = false end
 
-                -- ESP Box
                 if _G.PVP_Settings.EspBox then
                     local sizeX = 2000 / screenPos.Z
                     local sizeY = 2500 / screenPos.Z
@@ -58,12 +55,10 @@ local function CreateESP(target)
                     Box.Position = Vector2.new(screenPos.X - sizeX / 2, screenPos.Y - sizeY / 2)
                 else Box.Visible = false end
             else
-                Line.Visible = false
-                Box.Visible = false
+                Line.Visible = false; Box.Visible = false
             end
         else
-            Line.Visible = false
-            Box.Visible = false
+            Line.Visible = false; Box.Visible = false
         end
     end)
 end
@@ -77,8 +72,8 @@ gui.Name = "Migul_V4_Final"
 gui.ResetOnSpawn = false
 
 local mainFrame = Instance.new("Frame", gui)
-mainFrame.Size = UDim2.new(0, 350, 0, 450)
-mainFrame.Position = UDim2.new(0.5, -175, 0.5, -225)
+mainFrame.Size = UDim2.new(0, 350, 0, 480)
+mainFrame.Position = UDim2.new(0.5, -175, 0.5, -240)
 mainFrame.BackgroundColor3 = Color3.fromRGB(15, 17, 24)
 mainFrame.Visible = false
 Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 12)
@@ -88,15 +83,16 @@ scroll.Size = UDim2.new(1, -20, 1, -80)
 scroll.Position = UDim2.new(0, 10, 0, 50)
 scroll.BackgroundTransparency = 1
 scroll.ScrollBarThickness = 2
-Instance.new("UIListLayout", scroll).Padding = UDim.new(0, 8)
+local layout = Instance.new("UIListLayout", scroll)
+layout.Padding = UDim.new(0, 8)
 
 local openBtn = Instance.new("TextButton", gui)
 openBtn.Size = UDim2.new(0, 55, 0, 55)
 openBtn.Position = UDim2.new(0, 15, 0, 15)
 openBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
 openBtn.Text = "MIGUL"
-openBtn.TextColor3 = Color3.new(1, 1, 1)
 openBtn.Font = Enum.Font.GothamBold
+openBtn.TextColor3 = Color3.new(1, 1, 1)
 Instance.new("UICorner", openBtn).CornerRadius = UDim.new(1, 0)
 openBtn.Draggable = true
 
@@ -121,47 +117,45 @@ local function CreateToggle(name, callback)
         btn.Text = active and "[ ON ] " .. name or "[ OFF ] " .. name
         callback(active)
     end)
+    return btn
 end
 
 -- [[ 4. VÒNG LẶP LOGIC TỔNG HỢP ]] --
 RunService.RenderStepped:Connect(function()
     Camera.FieldOfView = _G.PVP_Settings.FOV_Value
     
-    -- Aim Circle
+    -- Vòng tròn Aim
     if _G.PVP_Settings.AimCircle and _G.PVP_Settings.CircleRadius > 0 then
         AimCircle.Visible = true
         AimCircle.Radius = _G.PVP_Settings.CircleRadius
         AimCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
     else AimCircle.Visible = false end
 
+    -- Tìm mục tiêu & Hitbox
     local target, dist = nil, math.huge
     for _, v in pairs(Players:GetPlayers()) do
-        if v ~= player and v.Character and v.Character:FindFirstChild("HumanoidRootPart") and v.Character.Humanoid.Health > 0 then
-            -- Hitbox
+        if v ~= player and v.Character and v.Character:FindFirstChild(_G.PVP_Settings.AimPart) and v.Character.Humanoid.Health > 0 then
             if _G.PVP_Settings.HitboxEnabled then
-                local hrp = v.Character.HumanoidRootPart
-                hrp.Size = Vector3.new(_G.PVP_Settings.HitboxSize, _G.PVP_Settings.HitboxSize, _G.PVP_Settings.HitboxSize)
-                hrp.Transparency = 0.7
-                hrp.CanCollide = false
+                v.Character.HumanoidRootPart.Size = Vector3.new(_G.PVP_Settings.HitboxSize, _G.PVP_Settings.HitboxSize, _G.PVP_Settings.HitboxSize)
+                v.Character.HumanoidRootPart.Transparency = 0.7
+                v.Character.HumanoidRootPart.CanCollide = false
             end
             
-            -- Tìm mục tiêu gần nhất cho Aimbot/TP
             local d = (player.Character.HumanoidRootPart.Position - v.Character.HumanoidRootPart.Position).Magnitude
             if d < dist then dist = d; target = v end
         end
     end
 
-    -- Aimbot (Lock tâm)
+    -- Aimbot Lock
     if _G.PVP_Settings.Aimbot and target then
-        local screenPos, onScreen = Camera:WorldToViewportPoint(target.Character.HumanoidRootPart.Position)
-        if onScreen then
-            -- Chỉ lock nếu nằm trong vòng tròn FOV (nếu vòng tròn đang bật)
-            local mousePos = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
-            local targetPos = Vector2.new(screenPos.X, screenPos.Y)
-            local mag = (targetPos - mousePos).Magnitude
-            
-            if not _G.PVP_Settings.AimCircle or mag < _G.PVP_Settings.CircleRadius then
-                Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Character.HumanoidRootPart.Position)
+        local targetPart = target.Character:FindFirstChild(_G.PVP_Settings.AimPart)
+        if targetPart then
+            local screenPos, onScreen = Camera:WorldToViewportPoint(targetPart.Position)
+            if onScreen then
+                local mag = (Vector2.new(screenPos.X, screenPos.Y) - Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)).Magnitude
+                if not _G.PVP_Settings.AimCircle or mag < _G.PVP_Settings.CircleRadius then
+                    Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetPart.Position)
+                end
             end
         end
     end
@@ -174,22 +168,29 @@ end)
 
 -- [[ 5. KẾT NỐI NÚT BẤM ]] --
 CreateToggle("ESP Line", function(s) _G.PVP_Settings.EspLine = s end)
-CreateToggle("ESP Box (Xuyên Tường)", function(s) _G.PVP_Settings.EspBox = s end)
+CreateToggle("ESP Box", function(s) _G.PVP_Settings.EspBox = s end)
 CreateToggle("Hitbox Pro", function(s) _G.PVP_Settings.HitboxEnabled = s end)
 CreateToggle("Aimbot (Lock Tâm)", function(s) _G.PVP_Settings.Aimbot = s end)
+
+-- NÚT TARGET HEAD/BODY (Đã chỉnh lại logic hiển thị)
+local targetBtn = CreateToggle("Target: BODY", function(active)
+    if _G.PVP_Settings.AimPart == "HumanoidRootPart" then
+        _G.PVP_Settings.AimPart = "Head"
+    else
+        _G.PVP_Settings.AimPart = "HumanoidRootPart"
+    end
+end)
+
+targetBtn.MouseButton1Click:Connect(function()
+    targetBtn.Text = (_G.PVP_Settings.AimPart == "Head") and "[ ON ] Target: HEAD" or "[ OFF ] Target: BODY"
+end)
+
 CreateToggle("TP Kill (Tốc Biến)", function(s) _G.PVP_Settings.TP_Kill = s end)
 CreateToggle("High FOV (Tầm nhìn)", function(s) _G.PVP_Settings.FOV_Value = s and 110 or 70 end)
 
--- Nút Chỉnh Vòng Aim 0 -> 100
-CreateToggle("Chỉnh Vòng Aim (0-100)", function(state)
-    _G.PVP_Settings.AimCircle = state
-    if state then
-        if _G.PVP_Settings.CircleRadius >= 100 then
-            _G.PVP_Settings.CircleRadius = 0
-        else
-            _G.PVP_Settings.CircleRadius = _G.PVP_Settings.CircleRadius + 25 
-        end
-    else
-        _G.PVP_Settings.CircleRadius = 0
+CreateToggle("Chỉnh Vòng Aim (0-100)", function(s)
+    _G.PVP_Settings.AimCircle = s
+    if s then 
+        _G.PVP_Settings.CircleRadius = (_G.PVP_Settings.CircleRadius >= 100 and 0 or _G.PVP_Settings.CircleRadius + 25) 
     end
 end)
