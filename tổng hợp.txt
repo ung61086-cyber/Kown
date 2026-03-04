@@ -1,189 +1,177 @@
-local player = game:GetService("Players").LocalPlayer
-local gui = player.PlayerGui:FindFirstChild("Migul_V4_Final") or player.PlayerGui:FindFirstChild("Migul_PVP_Fixed")
-local mainFrame = gui:FindFirstChild("Frame") -- Tên Frame chính của bạn
+-- [[ MIGUL V4 - SILENT AIM EDITION ]] --
+getgenv().ScriptTitle = "fluorite"
+getgenv().ScriptSubTitle = "fluorite"
+getgenv().ScriptImage = "https://i.ibb.co/LhYMYB45/1000089464.webp"
+getgenv().ScriptAuthorName = "Tudeptrai"
+getgenv().ScriptAuthorSubTitle = "Ko có"
+loadstring(game:HttpGet("https://raw.githubusercontent.com/hoannhatz/Script/refs/heads/main/EZScript.lua"))()
 
--- [[ TẠO NÚT THU NHỎ TRÒN ]] --
-local openBtn = Instance.new("TextButton", gui)
-openBtn.Name = "MigulOpenButton"
-openBtn.Size = UDim2.new(0, 50, 0, 50)
-openBtn.Position = UDim2.new(0, 15, 0, 15) -- Góc trên bên trái
-openBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255) -- Màu xanh Neon
-openBtn.Text = "MIGUL"
-openBtn.TextColor3 = Color3.new(1, 1, 1)
-openBtn.Font = Enum.Font.GothamBold
-openBtn.TextSize = 10
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Camera = workspace.CurrentCamera
+local player = Players.LocalPlayer
+local Mouse = player:GetMouse()
 
--- Làm nút tròn chuẩn Migul
-local corner = Instance.new("UICorner", openBtn)
-corner.CornerRadius = UDim.new(1, 0)
-
--- [[ LOGIC ĐÓNG / MỞ ]] --
-openBtn.MouseButton1Click:Connect(function()
-    mainFrame.Visible = not mainFrame.Visible
-    -- Hiệu ứng mờ dần khi đóng (Tùy chọn)
-    if mainFrame.Visible then
-        openBtn.Text = "CLOSE"
-        openBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50) -- Đổi sang đỏ khi mở
-    else
-        openBtn.Text = "MIGUL"
-        openBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
-    end
-end)
-
--- Cho phép kéo nút (Draggable) để không vướng màn hình khi PVP
-openBtn.Active = true
-openBtn.Draggable = true
-
-
--- [[ CẤU HÌNH BẬT TẮT ]] --
+-- [[ BẢNG TRẠNG THÁI HỆ THỐNG ]] --
 _G.PVP_Settings = {
-    EspLine = true -- Đổi thành false để tắt
+    EspLine = false,
+    EspBox = false,
+    HitboxEnabled = false,
+    HitboxSize = 25,
+    TP_Kill = false,
+    TP_Offset = Vector3.new(0, 0, 3),
+    FOV_Value = 70,
+    AimCircle = false,
+    CircleRadius = 0,
+    Aimbot = false,
+    SilentAim = true, -- Mặc định bật Silent Aim
+    AimPart = "Head" 
 }
 
--- [[ HÀM VẼ ESP LINE TỪ ĐỈNH MÀN HÌNH ]] --
-local function CreateESPLine(target)
+-- [[ 1. KHỞI TẠO VÒNG TRÒN AIM ]] --
+local AimCircle = Drawing.new("Circle")
+AimCircle.Color = Color3.fromRGB(255, 255, 255)
+AimCircle.Thickness = 1.5
+AimCircle.Filled = false
+AimCircle.Transparency = 0.8
+AimCircle.Visible = false
+
+-- [[ 2. HÀM TÌM MỤC TIÊU GẦN NHẤT ]] --
+local function GetClosestTarget()
+    local target, dist = nil, math.huge
+    for _, v in pairs(Players:GetPlayers()) do
+        if v ~= player and v.Character and v.Character:FindFirstChild(_G.PVP_Settings.AimPart) and v.Character.Humanoid.Health > 0 then
+            local part = v.Character[_G.PVP_Settings.AimPart]
+            local screenPos, onScreen = Camera:WorldToViewportPoint(part.Position)
+            if onScreen then
+                local mag = (Vector2.new(screenPos.X, screenPos.Y) - Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)).Magnitude
+                if not _G.PVP_Settings.AimCircle or mag < _G.PVP_Settings.CircleRadius then
+                    if mag < dist then
+                        dist = mag
+                        target = part
+                    end
+                end
+            end
+        end
+    end
+    return target
+end
+
+-- [[ 3. SILENT AIM (ĐẠN TỰ VÀO ĐẦU) ]] --
+-- Đoạn này ghi đè vị trí chuột để súng tự bắn vào mục tiêu
+local oldIndex
+oldIndex = hookmetamethod(game, "__index", function(self, Index)
+    if self == Mouse and (Index == "Hit" or Index == "Target") and _G.PVP_Settings.Aimbot then
+        local targetPart = GetClosestTarget()
+        if targetPart then
+            return (Index == "Hit" and targetPart.CFrame or targetPart)
+        end
+    end
+    return oldIndex(self, Index)
+end)
+
+-- [[ 4. HÀM TẠO ESP ]] --
+local function CreateESP(target)
     local Line = Drawing.new("Line")
-    
+    local Box = Drawing.new("Square")
     RunService.RenderStepped:Connect(function()
         if target.Character and target.Character:FindFirstChild("HumanoidRootPart") and target.Character.Humanoid.Health > 0 then
-            local RootPart = target.Character.HumanoidRootPart
-            local Pos, OnScreen = Camera:WorldToViewportPoint(RootPart.Position)
-            
-            if OnScreen and _G.PVP_Settings.EspLine then
-                Line.Visible = true
-                -- Điểm bắt đầu: Giữa cạnh trên của màn hình
-                Line.From = Vector2.new(Camera.ViewportSize.X / 2, 0) 
-                -- Điểm kết thúc: Vị trí đối thủ
-                Line.To = Vector2.new(Pos.X, Pos.Y)
-                Line.Color = Color3.fromRGB(0, 255, 255) -- Màu xanh Neon
-                Line.Thickness = 1
-                Line.Transparency = 1
-            else
-                Line.Visible = false
-            end
-        else
-            Line.Visible = false
-        end
+            local hrp = target.Character.HumanoidRootPart
+            local screenPos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
+            if onScreen then
+                Line.Visible = _G.PVP_Settings.EspLine
+                Line.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
+                Line.To = Vector2.new(screenPos.X, screenPos.Y)
+                Line.Color = Color3.new(0, 1, 1)
+
+                Box.Visible = _G.PVP_Settings.EspBox
+                local sizeX = 2000 / screenPos.Z
+                local sizeY = 2500 / screenPos.Z
+                Box.Size = Vector2.new(sizeX, sizeY)
+                Box.Position = Vector2.new(screenPos.X - sizeX / 2, screenPos.Y - sizeY / 2)
+                Box.Color = Color3.new(1, 0, 0)
+            else Line.Visible = false; Box.Visible = false end
+        else Line.Visible = false; Box.Visible = false end
     end)
 end
 
--- Tự động áp dụng cho tất cả người chơi trong server
-for _, v in pairs(Players:GetPlayers()) do
-    if v ~= player then
-        CreateESPLine(v)
-    end
-end
+for _, v in pairs(Players:GetPlayers()) do if v ~= player then CreateESP(v) end end
+Players.PlayerAdded:Connect(function(v) if v ~= player then CreateESP(v) end end)
 
--- Áp dụng cho người chơi mới tham gia
-Players.PlayerAdded:Connect(function(v)
-    if v ~= player then
-        CreateESPLine(v)
-    end
-end)
-}
-
-
--- [[ CẤU HÌNH HITBOX ]] --
-_G.HitboxSettings = {
-    Enabled = true,
-    HitboxSize = 25,     -- Độ rộng của hitbox (từ 10 - 30 là an toàn)
-    Transparency = 0.7   -- Độ trong suốt của khối hitbox
-}
-
--- [[ VÒNG LẶP THỰC THI ]] --
+-- [[ 5. VÒNG LẶP LOGIC ]] --
 RunService.RenderStepped:Connect(function()
-    if _G.HitboxSettings.Enabled then
-        for _, target in pairs(Players:GetPlayers()) do
-            if target ~= player and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
-                pcall(function()
-                    local hrp = target.Character.HumanoidRootPart
-                    -- Phóng to kích thước phần thân để dễ bắn trúng
-                    hrp.Size = Vector3.new(_G.HitboxSettings.HitboxSize, _G.HitboxSettings.HitboxSize, _G.HitboxSettings.HitboxSize)
-                    hrp.Transparency = _G.HitboxSettings.Transparency
-                    hrp.Color = Color3.fromRGB(0, 180, 255) -- Màu xanh chuẩn Migul
-                    hrp.Material = Enum.Material.Neon
-                    hrp.CanCollide = false
-                end)
+    Camera.FieldOfView = _G.PVP_Settings.FOV_Value
+    if _G.PVP_Settings.AimCircle then
+        AimCircle.Visible = true
+        AimCircle.Radius = _G.PVP_Settings.CircleRadius
+        AimCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+    else AimCircle.Visible = false end
+
+    local targetPart = GetClosestTarget()
+    if targetPart then
+        -- Hitbox
+        if _G.PVP_Settings.HitboxEnabled then
+            local root = targetPart.Parent:FindFirstChild("HumanoidRootPart")
+            if root then
+                root.Size = Vector3.new(_G.PVP_Settings.HitboxSize, _G.PVP_Settings.HitboxSize, _G.PVP_Settings.HitboxSize)
+                root.Transparency = 0.7
+                root.CanCollide = false
             end
         end
+        -- TP Kill
+        if _G.PVP_Settings.TP_Kill then
+            player.Character.HumanoidRootPart.CFrame = targetPart.Parent.HumanoidRootPart.CFrame * CFrame.new(_G.PVP_Settings.TP_Offset)
+        end
     end
 end)
 
+-- [[ 6. GIAO DIỆN UI TÙY CHỈNH ]] --
+local gui = Instance.new("ScreenGui", player.PlayerGui)
+gui.Name = "Migul_V4"
+local mainFrame = Instance.new("Frame", gui)
+mainFrame.Size = UDim2.new(0, 300, 0, 400)
+mainFrame.Position = UDim2.new(0.5, -150, 0.5, -200)
+mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+mainFrame.Visible = false
+Instance.new("UICorner", mainFrame)
 
--- [[ BẢNG MÀU ĐẸP ]] --
-local Colors = {
-    NeonBlue = Color3.fromRGB(0, 180, 255),
-    NeonPurple = Color3.fromRGB(170, 0, 255),
-    NeonGreen = Color3.fromRGB(0, 255, 120),
-    DarkTheme = Color3.fromRGB(15, 17, 24)
-}
+local scroll = Instance.new("ScrollingFrame", mainFrame)
+scroll.Size = UDim2.new(1, -20, 1, -20)
+scroll.Position = UDim2.new(0, 10, 0, 10)
+scroll.BackgroundTransparency = 1
+Instance.new("UIListLayout", scroll).Padding = UDim.new(0, 5)
 
--- Cách áp dụng (Ví dụ đổi sang màu Tím)
-mainFrame.BackgroundColor3 = Colors.NeonPurple
-
-
--- [[ 1. BẢNG TRẠNG THÁI CHỨC NĂNG ]] --
-_G.Migul_Toggles = {
-    AutoFarm = false,
-    Hitbox = false,
-    EspLine = false
-}
-
--- [[ 2. HÀM TẠO NÚT BẬT/TẮT TRÊN GIAO DIỆN ]] --
-local function CreateToggle(name, parent, callback)
-    local toggleFrame = Instance.new("TextButton")
-    toggleFrame.Size = UDim2.new(1, -10, 0, 40)
-    toggleFrame.BackgroundColor3 = Color3.fromRGB(30, 33, 45)
-    toggleFrame.Text = "  " .. name
-    toggleFrame.TextColor3 = Color3.new(1, 1, 1)
-    toggleFrame.TextXAlignment = Enum.TextXAlignment.Left
-    toggleFrame.Font = Enum.Font.Gotham
-    toggleFrame.Parent = parent
-    
-    local corner = Instance.new("UICorner", toggleFrame)
-    corner.CornerRadius = UDim.new(0, 8)
-
-    -- Trạng thái nội bộ
-    local active = false
-
-    toggleFrame.MouseButton1Click:Connect(function()
-        active = not active
-        
-        -- Hiệu ứng đổi màu khi bật/tắt
-        if active then
-            toggleFrame.BackgroundColor3 = Color3.fromRGB(0, 180, 255) -- Màu xanh khi bật
-            toggleFrame.Text = "  [ ON ] " .. name
-        else
-            toggleFrame.BackgroundColor3 = Color3.fromRGB(30, 33, 45) -- Màu tối khi tắt
-            toggleFrame.Text = "  [ OFF ] " .. name
-        end
-        
-        -- Chạy chức năng
-        callback(active)
-    end)
+local function NewButton(text, callback)
+    local b = Instance.new("TextButton", scroll)
+    b.Size = UDim2.new(1, 0, 0, 35)
+    b.Text = text
+    b.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    b.TextColor3 = Color3.new(1, 1, 1)
+    Instance.new("UICorner", b)
+    b.MouseButton1Click:Connect(callback)
+    return b
 end
 
--- [[ 3. CÁCH SỬ DỤNG (ÁP DỤNG VÀO MENU CỦA BẠN) ]] --
--- Giả sử 'scroll' là khung chứa các nút bấm của bạn
+local openBtn = Instance.new("TextButton", gui)
+openBtn.Size = UDim2.new(0, 50, 0, 50)
+openBtn.Text = "MENU"
+openBtn.Draggable = true
+openBtn.MouseButton1Click:Connect(function() mainFrame.Visible = not mainFrame.Visible end)
 
-CreateToggle("Auto Farm Level", scroll, function(state)
-    _G.Migul_Toggles.AutoFarm = state
-    if state then
-        print("Đã bật Auto Farm")
-        -- Cho code farm của bạn vào đây
-    else
-        print("Đã tắt Auto Farm")
-    end
+-- KẾT NỐI NÚT
+NewButton("ESP Line", function() _G.PVP_Settings.EspLine = not _G.PVP_Settings.EspLine end)
+NewButton("ESP Box", function() _G.PVP_Settings.EspBox = not _G.PVP_Settings.EspBox end)
+NewButton("Hitbox Pro", function() _G.PVP_Settings.HitboxEnabled = not _G.PVP_Settings.HitboxEnabled end)
+local aimBtn = NewButton("Aimbot & Silent: OFF", function() 
+    _G.PVP_Settings.Aimbot = not _G.PVP_Settings.Aimbot 
+    aimBtn.Text = _G.PVP_Settings.Aimbot and "Aimbot & Silent: ON" or "Aimbot & Silent: OFF"
 end)
-
-CreateToggle("ESP Line (Top)", scroll, function(state)
-    _G.Migul_Toggles.EspLine = state
-    -- Code ESP Line sẽ tự kiểm tra biến này để hiện/ẩn
+local partBtn = NewButton("Target: HEAD", function()
+    _G.PVP_Settings.AimPart = (_G.PVP_Settings.AimPart == "Head") and "HumanoidRootPart" or "Head"
+    partBtn.Text = "Target: " .. _G.PVP_Settings.AimPart
 end)
-
-CreateToggle("Hitbox Pro", scroll, function(state)
-    _G.Migul_Toggles.Hitbox = state
+NewButton("TP Kill", function() _G.PVP_Settings.TP_Kill = not _G.PVP_Settings.TP_Kill end)
+NewButton("Circle FOV +25", function() 
+    _G.PVP_Settings.AimCircle = true
+    _G.PVP_Settings.CircleRadius = (_G.PVP_Settings.CircleRadius >= 150) and 0 or _G.PVP_Settings.CircleRadius + 25 
 end)
-
-
-
