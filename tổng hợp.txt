@@ -1,0 +1,189 @@
+local player = game:GetService("Players").LocalPlayer
+local gui = player.PlayerGui:FindFirstChild("Migul_V4_Final") or player.PlayerGui:FindFirstChild("Migul_PVP_Fixed")
+local mainFrame = gui:FindFirstChild("Frame") -- Tên Frame chính của bạn
+
+-- [[ TẠO NÚT THU NHỎ TRÒN ]] --
+local openBtn = Instance.new("TextButton", gui)
+openBtn.Name = "MigulOpenButton"
+openBtn.Size = UDim2.new(0, 50, 0, 50)
+openBtn.Position = UDim2.new(0, 15, 0, 15) -- Góc trên bên trái
+openBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255) -- Màu xanh Neon
+openBtn.Text = "MIGUL"
+openBtn.TextColor3 = Color3.new(1, 1, 1)
+openBtn.Font = Enum.Font.GothamBold
+openBtn.TextSize = 10
+
+-- Làm nút tròn chuẩn Migul
+local corner = Instance.new("UICorner", openBtn)
+corner.CornerRadius = UDim.new(1, 0)
+
+-- [[ LOGIC ĐÓNG / MỞ ]] --
+openBtn.MouseButton1Click:Connect(function()
+    mainFrame.Visible = not mainFrame.Visible
+    -- Hiệu ứng mờ dần khi đóng (Tùy chọn)
+    if mainFrame.Visible then
+        openBtn.Text = "CLOSE"
+        openBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50) -- Đổi sang đỏ khi mở
+    else
+        openBtn.Text = "MIGUL"
+        openBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
+    end
+end)
+
+-- Cho phép kéo nút (Draggable) để không vướng màn hình khi PVP
+openBtn.Active = true
+openBtn.Draggable = true
+
+
+-- [[ CẤU HÌNH BẬT TẮT ]] --
+_G.PVP_Settings = {
+    EspLine = true -- Đổi thành false để tắt
+}
+
+-- [[ HÀM VẼ ESP LINE TỪ ĐỈNH MÀN HÌNH ]] --
+local function CreateESPLine(target)
+    local Line = Drawing.new("Line")
+    
+    RunService.RenderStepped:Connect(function()
+        if target.Character and target.Character:FindFirstChild("HumanoidRootPart") and target.Character.Humanoid.Health > 0 then
+            local RootPart = target.Character.HumanoidRootPart
+            local Pos, OnScreen = Camera:WorldToViewportPoint(RootPart.Position)
+            
+            if OnScreen and _G.PVP_Settings.EspLine then
+                Line.Visible = true
+                -- Điểm bắt đầu: Giữa cạnh trên của màn hình
+                Line.From = Vector2.new(Camera.ViewportSize.X / 2, 0) 
+                -- Điểm kết thúc: Vị trí đối thủ
+                Line.To = Vector2.new(Pos.X, Pos.Y)
+                Line.Color = Color3.fromRGB(0, 255, 255) -- Màu xanh Neon
+                Line.Thickness = 1
+                Line.Transparency = 1
+            else
+                Line.Visible = false
+            end
+        else
+            Line.Visible = false
+        end
+    end)
+end
+
+-- Tự động áp dụng cho tất cả người chơi trong server
+for _, v in pairs(Players:GetPlayers()) do
+    if v ~= player then
+        CreateESPLine(v)
+    end
+end
+
+-- Áp dụng cho người chơi mới tham gia
+Players.PlayerAdded:Connect(function(v)
+    if v ~= player then
+        CreateESPLine(v)
+    end
+end)
+}
+
+
+-- [[ CẤU HÌNH HITBOX ]] --
+_G.HitboxSettings = {
+    Enabled = true,
+    HitboxSize = 25,     -- Độ rộng của hitbox (từ 10 - 30 là an toàn)
+    Transparency = 0.7   -- Độ trong suốt của khối hitbox
+}
+
+-- [[ VÒNG LẶP THỰC THI ]] --
+RunService.RenderStepped:Connect(function()
+    if _G.HitboxSettings.Enabled then
+        for _, target in pairs(Players:GetPlayers()) do
+            if target ~= player and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+                pcall(function()
+                    local hrp = target.Character.HumanoidRootPart
+                    -- Phóng to kích thước phần thân để dễ bắn trúng
+                    hrp.Size = Vector3.new(_G.HitboxSettings.HitboxSize, _G.HitboxSettings.HitboxSize, _G.HitboxSettings.HitboxSize)
+                    hrp.Transparency = _G.HitboxSettings.Transparency
+                    hrp.Color = Color3.fromRGB(0, 180, 255) -- Màu xanh chuẩn Migul
+                    hrp.Material = Enum.Material.Neon
+                    hrp.CanCollide = false
+                end)
+            end
+        end
+    end
+end)
+
+
+-- [[ BẢNG MÀU ĐẸP ]] --
+local Colors = {
+    NeonBlue = Color3.fromRGB(0, 180, 255),
+    NeonPurple = Color3.fromRGB(170, 0, 255),
+    NeonGreen = Color3.fromRGB(0, 255, 120),
+    DarkTheme = Color3.fromRGB(15, 17, 24)
+}
+
+-- Cách áp dụng (Ví dụ đổi sang màu Tím)
+mainFrame.BackgroundColor3 = Colors.NeonPurple
+
+
+-- [[ 1. BẢNG TRẠNG THÁI CHỨC NĂNG ]] --
+_G.Migul_Toggles = {
+    AutoFarm = false,
+    Hitbox = false,
+    EspLine = false
+}
+
+-- [[ 2. HÀM TẠO NÚT BẬT/TẮT TRÊN GIAO DIỆN ]] --
+local function CreateToggle(name, parent, callback)
+    local toggleFrame = Instance.new("TextButton")
+    toggleFrame.Size = UDim2.new(1, -10, 0, 40)
+    toggleFrame.BackgroundColor3 = Color3.fromRGB(30, 33, 45)
+    toggleFrame.Text = "  " .. name
+    toggleFrame.TextColor3 = Color3.new(1, 1, 1)
+    toggleFrame.TextXAlignment = Enum.TextXAlignment.Left
+    toggleFrame.Font = Enum.Font.Gotham
+    toggleFrame.Parent = parent
+    
+    local corner = Instance.new("UICorner", toggleFrame)
+    corner.CornerRadius = UDim.new(0, 8)
+
+    -- Trạng thái nội bộ
+    local active = false
+
+    toggleFrame.MouseButton1Click:Connect(function()
+        active = not active
+        
+        -- Hiệu ứng đổi màu khi bật/tắt
+        if active then
+            toggleFrame.BackgroundColor3 = Color3.fromRGB(0, 180, 255) -- Màu xanh khi bật
+            toggleFrame.Text = "  [ ON ] " .. name
+        else
+            toggleFrame.BackgroundColor3 = Color3.fromRGB(30, 33, 45) -- Màu tối khi tắt
+            toggleFrame.Text = "  [ OFF ] " .. name
+        end
+        
+        -- Chạy chức năng
+        callback(active)
+    end)
+end
+
+-- [[ 3. CÁCH SỬ DỤNG (ÁP DỤNG VÀO MENU CỦA BẠN) ]] --
+-- Giả sử 'scroll' là khung chứa các nút bấm của bạn
+
+CreateToggle("Auto Farm Level", scroll, function(state)
+    _G.Migul_Toggles.AutoFarm = state
+    if state then
+        print("Đã bật Auto Farm")
+        -- Cho code farm của bạn vào đây
+    else
+        print("Đã tắt Auto Farm")
+    end
+end)
+
+CreateToggle("ESP Line (Top)", scroll, function(state)
+    _G.Migul_Toggles.EspLine = state
+    -- Code ESP Line sẽ tự kiểm tra biến này để hiện/ẩn
+end)
+
+CreateToggle("Hitbox Pro", scroll, function(state)
+    _G.Migul_Toggles.Hitbox = state
+end)
+
+
+
