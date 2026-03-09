@@ -1,11 +1,10 @@
--- [[ 1. HỆ THỐNG SERVICES ]] --
+-- [[ 1. KHỞI TẠO HỆ THỐNG ]] --
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
--- [[ 2. CẤU HÌNH & DỮ LIỆU KEY ]] --
+-- [[ 2. DANH SÁCH KEY ]] --
 local Keys = {
     ["tudeptrai2013"] = 863913600, -- VIP 9999 Ngày
     ["Tudeptrai"] = 86400, ["Tudeptrai09"] = 86400, ["Tudeptrai10"] = 86400,
@@ -13,117 +12,131 @@ local Keys = {
 }
 
 _G.Config = {
-    Aimbot = false, ESP_Box = false, ESP_Line = false, 
-    ESP_HP = false, TeamCheck = true, AimRadius = 93.61
+    Hitbox = false,
+    HitboxSize = 15,
+    ESP_Line = false,
+    TeamCheck = true
 }
 
-local Cache = {Lines = {}, Boxes = {}, HealthBars = {}}
+local Cache = {Lines = {}}
 
--- [[ 3. HÀM TẠO ESP (DRAWING API) ]] --
-local function CreateESP(v)
-    local l = Drawing.new("Line"); l.Visible = false; l.Color = Color3.new(1,1,1); Cache.Lines[v.Name] = l
-    local b = {T = Drawing.new("Line"), B = Drawing.new("Line"), L = Drawing.new("Line"), R = Drawing.new("Line")}
-    for _, i in pairs(b) do i.Visible = false; i.Color = Color3.new(1,1,1) end; Cache.Boxes[v.Name] = b
-    local h = {Out = Drawing.new("Square"), Main = Drawing.new("Square")}
-    h.Out.Filled = true; h.Out.Color = Color3.new(0,0,0); h.Main.Filled = true; Cache.HealthBars[v.Name] = h
+-- [[ 3. HÀM TẠO VẠCH KẺ (LINE) TRÊN ĐẦU ]] --
+local function CreateLine(v)
+    local l = Drawing.new("Line")
+    l.Visible = false
+    l.Color = Color3.fromRGB(255, 255, 255)
+    l.Thickness = 1.5
+    l.Transparency = 1
+    Cache.Lines[v.Name] = l
 end
 
--- [[ 4. GIAO DIỆN MENU CHÍNH (BLOX FRUIT MAX) ]] --
-local function LaunchMainScript()
+-- [[ 4. GIAO DIỆN MENU CHÍNH (KHI NHẬP KEY XONG) ]] --
+local function LaunchMainScript(startTime, maxDuration)
     local MenuGui = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
-    MenuGui.Name = "BloxFruitMax_Menu"
+    MenuGui.Name = "BloxFruitMax_Final"
 
     local MainFrame = Instance.new("Frame", MenuGui)
     MainFrame.Size = UDim2.new(0, 280, 0, 350)
     MainFrame.Position = UDim2.new(0.5, -140, 0.5, -175)
-    MainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    MainFrame.Active = true
+    MainFrame.Draggable = true -- Cho phép kéo menu
     Instance.new("UICorner", MainFrame)
 
     local Header = Instance.new("Frame", MainFrame)
-    Header.Size = UDim2.new(1, 0, 0, 40); Header.BackgroundColor3 = Color3.fromRGB(210, 40, 40)
+    Header.Size = UDim2.new(1, 0, 0, 45); Header.BackgroundColor3 = Color3.fromRGB(210, 40, 40)
     Instance.new("UICorner", Header)
 
     local Title = Instance.new("TextLabel", Header)
-    Title.Size = UDim2.new(1, 0, 1, 0); Title.Text = "BLOX FRUIT MAX"; Title.TextColor3 = Color3.new(1,1,1); Title.Font = "GothamBold"; Title.BackgroundTransparency = 1
+    Title.Size = UDim2.new(1, 0, 1, 0); Title.Text = "BLOX FRUIT MAX"; Title.TextColor3 = Color3.new(1,1,1); Title.Font = "GothamBold"; Title.TextSize = 16; Title.BackgroundTransparency = 1
 
-    -- Nút Ẩn/Hiện Menu
-    local ToggleBtn = Instance.new("TextButton", MenuGui)
-    ToggleBtn.Size = UDim2.new(0, 45, 0, 45); ToggleBtn.Position = UDim2.new(0, 10, 0.5, -22); ToggleBtn.Text = "M"; ToggleBtn.BackgroundColor3 = Color3.fromRGB(210, 40, 40); ToggleBtn.TextColor3 = Color3.new(1,1,1)
-    Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(1, 0)
-    ToggleBtn.MouseButton1Click:Connect(function() MainFrame.Visible = not MainFrame.Visible end)
+    -- Bảng thông tin Server & Thời gian
+    local InfoLabel = Instance.new("TextLabel", MainFrame)
+    InfoLabel.Size = UDim2.new(1, 0, 0, 50); InfoLabel.Position = UDim2.new(0, 0, 0, 45)
+    InfoLabel.BackgroundColor3 = Color3.fromRGB(40, 40, 40); InfoLabel.TextColor3 = Color3.new(1,1,1); InfoLabel.Font = "GothamBold"; InfoLabel.TextSize = 11; InfoLabel.RichText = true
 
-    local function CreateToggle(name, configKey, yPos)
+    task.spawn(function()
+        while task.wait(1) do
+            local pCount = #Players:GetPlayers()
+            local diff = maxDuration - (os.time() - startTime)
+            local timeStr = (diff > 1000000) and "VĨNH VIỄN" or string.format("%d phút", math.floor(diff/60))
+            InfoLabel.Text = "SERVER: <font color='#00FF00'>ONLINE " .. pCount .. "</font>\nHẠN DÙNG: <font color='#FFFF00'>" .. timeStr .. "</font>"
+            if diff <= 0 then LocalPlayer:Kick("Key hết hạn!") end
+        end
+    end)
+
+    -- Hàm tạo nút bấm tương tác (TC 100%)
+    local function CreateButton(name, configKey, yPos)
         local btn = Instance.new("TextButton", MainFrame)
-        btn.Size = UDim2.new(0, 240, 0, 35); btn.Position = UDim2.new(0.5, -120, 0, yPos); btn.Text = name; btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60); btn.TextColor3 = Color3.new(1,1,1); btn.Font = "GothamBold"
+        btn.Size = UDim2.new(0, 240, 0, 40); btn.Position = UDim2.new(0.5, -120, 0, yPos); btn.Text = name; btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60); btn.TextColor3 = Color3.new(1,1,1); btn.Font = "GothamBold"
         Instance.new("UICorner", btn)
         btn.MouseButton1Click:Connect(function()
             _G.Config[configKey] = not _G.Config[configKey]
-            btn.TextColor3 = _G.Config[configKey] and Color3.fromRGB(0, 255, 100) or Color3.new(1,1,1)
+            btn.TextColor3 = _G.Config[configKey] and Color3.fromRGB(0, 255, 127) or Color3.new(1,1,1)
         end)
     end
 
-    CreateToggle("AIMBOT", "Aimbot", 55)
-    CreateToggle("ESP BOX", "ESP_Box", 100)
-    CreateToggle("ESP LINE", "ESP_Line", 145)
-    CreateToggle("ESP HP", "ESP_HP", 190)
+    CreateButton("BẬT/TẮT HITBOX", "Hitbox", 110)
+    CreateButton("BẬT/TẮT ESP LINE (ĐẦU)", "ESP_Line", 165)
 
-    -- Vòng lặp ESP
+    -- Vòng lặp Render (ESP & Hitbox)
     RunService.RenderStepped:Connect(function()
         for _, v in pairs(Players:GetPlayers()) do
-            if v == LocalPlayer then continue end
-            local char, hrp, hum = v.Character, v.Character and v.Character:FindFirstChild("HumanoidRootPart"), v.Character and v.Character:FindFirstChild("Humanoid")
-            if hrp and hum and hum.Health > 0 then
-                if not Cache.Lines[v.Name] then CreateESP(v) end
-                local pos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
-                if onScreen then
-                    local sizeX, sizeY = 2000/pos.Z, 3000/pos.Z
-                    local x, y = pos.X - sizeX/2, pos.Y - sizeY/2
-                    Cache.Lines[v.Name].Visible = _G.Config.ESP_Line; Cache.Lines[v.Name].From = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y); Cache.Lines[v.Name].To = Vector2.new(pos.X, pos.Y)
-                    local b = Cache.Boxes[v.Name]; b.T.Visible = _G.Config.ESP_Box; b.T.From = Vector2.new(x,y); b.T.To = Vector2.new(x+sizeX,y)
-                    b.B.Visible = _G.Config.ESP_Box; b.B.From = Vector2.new(x,y+sizeY); b.B.To = Vector2.new(x+sizeX,y+sizeY)
-                    b.L.Visible = _G.Config.ESP_Box; b.L.From = Vector2.new(x,y); b.L.To = Vector2.new(x,y+sizeY)
-                    b.R.Visible = _G.Config.ESP_Box; b.R.From = Vector2.new(x+sizeX,y); b.R.To = Vector2.new(x+sizeX,y+sizeY)
-                    local h = Cache.HealthBars[v.Name]; h.Out.Visible = _G.Config.ESP_HP; h.Out.Size = Vector2.new(4, sizeY); h.Out.Position = Vector2.new(x-7, y)
-                    h.Main.Visible = _G.Config.ESP_HP; h.Main.Size = Vector2.new(2, sizeY * (hum.Health/hum.MaxHealth)); h.Main.Position = Vector2.new(x-6, y + (sizeY * (1 - hum.Health/hum.MaxHealth))); h.Main.Color = Color3.fromHSV((hum.Health/hum.MaxHealth)*0.3, 1, 1)
-                else
-                    Cache.Lines[v.Name].Visible = false
-                    for _, i in pairs(Cache.Boxes[v.Name]) do i.Visible = false end
-                    Cache.HealthBars[v.Name].Out.Visible = false; Cache.HealthBars[v.Name].Main.Visible = false
+            if v ~= LocalPlayer and v.Character then
+                local head = v.Character:FindFirstChild("Head")
+                local hrp = v.Character:FindFirstChild("HumanoidRootPart")
+                
+                -- Hitbox
+                if hrp then
+                    hrp.Size = _G.Config.Hitbox and Vector3.new(_G.Config.HitboxSize, _G.Config.HitboxSize, _G.Config.HitboxSize) or Vector3.new(2, 2, 1)
+                    hrp.Transparency = _G.Config.Hitbox and 0.7 or 1
+                end
+
+                -- ESP Line trỏ thẳng lên đầu
+                if head then
+                    if not Cache.Lines[v.Name] then CreateLine(v) end
+                    local line = Cache.Lines[v.Name]
+                    local pos, onScreen = Camera:WorldToViewportPoint(head.Position + Vector3.new(0, 1.5, 0))
+                    
+                    if onScreen and _G.Config.ESP_Line then
+                        line.Visible = true
+                        line.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
+                        line.To = Vector2.new(pos.X, pos.Y)
+                    else
+                        line.Visible = false
+                    end
                 end
             end
         end
     end)
 end
 
--- [[ 5. HỆ THỐNG NHẬP KEY (GIAO DIỆN KHỞI ĐẦU) ]] --
+-- [[ 5. GIAO DIỆN NHẬP KEY KHỞI ĐẦU ]] --
 local KeyGui = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
 local MainKey = Instance.new("Frame", KeyGui)
 MainKey.Size = UDim2.new(0, 320, 0, 200); MainKey.Position = UDim2.new(0.5, -160, 0.5, -100); MainKey.BackgroundColor3 = Color3.new(1,1,1)
-Instance.new("UICorner", MainKey).CornerRadius = UDim.new(0, 15)
+Instance.new("UICorner", MainKey)
 
 local TitleKey = Instance.new("TextLabel", MainKey)
-TitleKey.Size = UDim2.new(1, 0, 0, 50); TitleKey.Text = "HỆ THỐNG KEY"; TitleKey.Font = "GothamBold"; TitleKey.TextSize = 20; TitleKey.BackgroundTransparency = 1
+TitleKey.Size = UDim2.new(1, 0, 0, 50); TitleKey.Text = "NHẬP KEY ĐỂ MỞ SCRIPT"; TitleKey.Font = "GothamBold"; TitleKey.TextSize = 16; TitleKey.BackgroundTransparency = 1
 
 local Input = Instance.new("TextBox", MainKey)
-Input.Size = UDim2.new(0, 260, 0, 40); Input.Position = UDim2.new(0.5, -130, 0.4, 0); Input.PlaceholderText = "Nhập Key..."; Input.BackgroundColor3 = Color3.fromRGB(240, 240, 240)
+Input.Size = UDim2.new(0, 260, 0, 45); Input.Position = UDim2.new(0.5, -130, 0.4, 0); Input.PlaceholderText = "Dán Key tại đây..."; Input.Text = ""; Input.BackgroundColor3 = Color3.fromRGB(240, 240, 240)
 Instance.new("UICorner", Input)
 
 local Confirm = Instance.new("TextButton", MainKey)
-Confirm.Size = UDim2.new(0, 180, 0, 40); Confirm.Position = UDim2.new(0.5, -90, 0.7, 0); Confirm.Text = "XÁC NHẬN"; Confirm.BackgroundColor3 = Color3.fromRGB(0, 200, 100); Confirm.TextColor3 = Color3.new(1,1,1); Confirm.Font = "GothamBold"
+Confirm.Size = UDim2.new(0, 200, 0, 45); Confirm.Position = UDim2.new(0.5, -100, 0.7, 0); Confirm.Text = "XÁC NHẬN"; Confirm.BackgroundColor3 = Color3.fromRGB(0, 200, 100); Confirm.TextColor3 = Color3.new(1,1,1); Confirm.Font = "GothamBold"
 Instance.new("UICorner", Confirm)
 
-local Msg = Instance.new("TextLabel", MainKey)
-Msg.Size = UDim2.new(1, 0, 0, 20); Msg.Position = UDim2.new(0, 0, 0.9, 0); Msg.Text = ""; Msg.BackgroundTransparency = 1
-
--- [[ 6. KẾT NỐI TC (TƯƠNG TÁC) ]] --
 Confirm.MouseButton1Click:Connect(function()
     local val = Input.Text
     if Keys[val] then
-        Msg.TextColor3 = Color3.fromRGB(0, 200, 0); Msg.Text = "ĐANG MỞ SCRIPT..."
-        task.wait(1)
-        KeyGui:Destroy() -- Tắt bảng nhập key
-        LaunchMainScript() -- Mở Menu Blox Fruit Max
+        local start = os.time()
+        local duration = Keys[val]
+        KeyGui:Destroy()
+        LaunchMainScript(start, duration)
     else
-        Msg.TextColor3 = Color3.fromRGB(255, 0, 0); Msg.Text = "SAI KEY HOẶC HẾT HẠN!"
+        Input.Text = ""
+        Input.PlaceholderText = "SAI KEY! VUI LÒNG THỬ LẠI"
     end
 end)
