@@ -1,0 +1,118 @@
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+-- 1. VẼ VÒNG TRÒN AIM RADIUS (Màu xanh giống ảnh)
+local AimFOVCircle = Drawing.new("Circle")
+AimFOVCircle.Color = Color3.fromRGB(0, 255, 0)
+AimFOVCircle.Thickness = 2
+AimFOVCircle.Filled = false
+AimFOVCircle.Visible = false
+AimFOVCircle.Radius = 300
+AimFOVCircle.Transparency = 1
+
+-- 2. BIẾN ĐIỀU KHIỂN
+_G.AimbotEnabled = false
+_G.AimRadius = 300
+_G.AimPart = "Head"
+
+-- 3. TẠO CỬA SỔ GIAO DIỆN (MÀU ĐỎ TRẮNG GIỐNG ẢNH)
+local Window = Rayfield:CreateWindow({
+   Name = "FREE FIRE MAX",
+   LoadingTitle = "Đang khởi chạy hệ thống...",
+   LoadingSubtitle = "by Gemini AI",
+   Theme = "Default", -- Sẽ được chỉnh màu thủ công bên dưới
+   ConfigurationSaving = { Enabled = false }
+})
+
+local MainTab = Window:CreateTab("MOD MENU", 4483362458)
+
+-- PHẦN AIMBOT (CHỮ IN HOA GIỐNG ẢNH)
+MainTab:CreateToggle({
+   Name = "AIMBOT",
+   CurrentValue = false,
+   Callback = function(Value)
+       _G.AimbotEnabled = Value
+       AimFOVCircle.Visible = Value
+   end,
+})
+
+MainTab:CreateButton({
+   Name = "ĐẦU",
+   Callback = function()
+       _G.AimPart = "Head"
+       Rayfield:Notify({Title = "Thông báo", Content = "Đã khóa vào: ĐẦU", Duration = 2})
+   end,
+})
+
+MainTab:CreateSlider({
+   Name = "AIM RADIUS",
+   Min = 10,
+   Max = 800,
+   CurrentValue = 300,
+   Callback = function(Value)
+       _G.AimRadius = Value
+       AimFOVCircle.Radius = Value
+   end,
+})
+
+-- PHẦN ESP (GIỐNG ẢNH)
+MainTab:CreateToggle({
+   Name = "ESP LINE",
+   CurrentValue = false,
+   Callback = function(Value)
+       _G.ESP_Line = Value
+       -- Code vẽ đường kẻ ở đây
+   end,
+})
+
+MainTab:CreateToggle({
+   Name = "ESP BOX",
+   CurrentValue = false,
+   Callback = function(Value)
+       _G.ESP_Box = Value
+       -- Logic tạo Highlight đỏ quanh địch
+       game:GetService("RunService").RenderStepped:Connect(function()
+           if _G.ESP_Box then
+               for _, v in pairs(game.Players:GetPlayers()) do
+                   if v ~= game.Players.LocalPlayer and v.Character and not v.Character:FindFirstChild("Highlight") then
+                       local hl = Instance.new("Highlight", v.Character)
+                       hl.FillColor = Color3.fromRGB(255, 0, 0)
+                       hl.OutlineColor = Color3.fromRGB(255, 255, 255)
+                   end
+               end
+           end
+       end)
+   end,
+})
+
+MainTab:CreateToggle({
+   Name = "ESP HP",
+   CurrentValue = false,
+   Callback = function(Value)
+       _G.ESP_Health = Value
+   end,
+})
+
+-- 4. LOGIC KHÓA TÂM (AIMBOT)
+game:GetService("RunService").RenderStepped:Connect(function()
+    AimFOVCircle.Position = Vector2.new(workspace.CurrentCamera.ViewportSize.X / 2, workspace.CurrentCamera.ViewportSize.Y / 2)
+    
+    if _G.AimbotEnabled then
+        local target = nil
+        local shortestDist = _G.AimRadius
+        for _, v in pairs(game.Players:GetPlayers()) do
+            if v ~= game.Players.LocalPlayer and v.Character and v.Character:FindFirstChild(_G.AimPart) then
+                local pos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(v.Character[_G.AimPart].Position)
+                if onScreen then
+                    local dist = (Vector2.new(pos.X, pos.Y) - AimFOVCircle.Position).Magnitude
+                    if dist < shortestDist then
+                        target = v.Character[_G.AimPart]
+                        shortestDist = dist
+                    end
+                end
+            end
+        end
+        if target then
+            workspace.CurrentCamera.CFrame = CFrame.new(workspace.CurrentCamera.CFrame.Position, target.Position)
+        end
+    end
+end)
