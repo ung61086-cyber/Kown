@@ -1,79 +1,76 @@
--- [[ 1. KHỞI TẠO DỊCH VỤ ]] --
+-- [[ 1. KHỞI TẠO HỆ THỐNG ]] --
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
--- [[ 2. HỆ THỐNG KEY & CẤU HÌNH ]] --
-local Keys = {
-    ["Tudeptrai98"] = 86400, -- Key 24 giờ
-    ["tudeptrai2013"] = 863913600 -- VIP Vĩnh viễn
-    ["Tudeptrai10"] = 86400, -- Key 24 giờ
+-- [[ 2. DANH SÁCH KEY CẬP NHẬT ]] --
+local KeyDatabase = {
+    ["tudeptrai2013"] = 863913600, -- VIP
+    ["VipUser99"] = 863913600,
+    ["PhamNghiaaDepTrai"] = 86400, -- 24H
+    ["Tudeptrai"] = 86400,
+    ["FreeKey1"] = 3600            -- 1H
 }
+
 _G.Config = {
-    Aimbot = false, Hitbox = false, HitboxSize = 15,
+    Aimbot = false, Hitbox = false, HitboxSize = 20,
     ESP_Line = false, ESP_Box = false, ESP_HP = false
 }
 
--- [[ 3. HÀM XỬ LÝ THỜI GIAN HẠN DÙNG ]] --
-local function GetTimeLeft(start, max)
-    local seconds = max - (os.time() - start)
-    if seconds <= 0 then return "Hết hạn" end
-    if seconds > 1000000 then return "Vĩnh Viễn" end
-    
-    local hours = math.floor(seconds / 3600)
-    local mins = math.floor((seconds % 3600) / 60)
-    local secs = seconds % 60
-    return string.format("%d giờ %d phút %d giây", hours, mins, secs) -- Hiển thị tụt thời gian
+-- [[ 3. HÀM TÍNH THỜI GIAN TỤT DẦN ]] --
+local function FormatTime(seconds)
+    if seconds > 1000000 then return "VĨNH VIỄN (VIP)" end
+    local h = math.floor(seconds / 3600)
+    local m = math.floor((seconds % 3600) / 60)
+    local s = seconds % 60
+    return string.format("%02d:%02d:%02d", h, m, s) --
 end
 
 -- [[ 4. GIAO DIỆN MENU CHÍNH ]] --
-local function LaunchMainScript(startTime, maxDuration)
+local function LaunchMain(startTime, duration)
     local MenuGui = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
+    MenuGui.ResetOnSpawn = false
+    
     local MainFrame = Instance.new("Frame", MenuGui)
-    MainFrame.Size = UDim2.new(0, 280, 0, 400)
-    MainFrame.Position = UDim2.new(0.5, -140, 0.5, -200)
+    MainFrame.Size = UDim2.new(0, 280, 0, 420)
+    MainFrame.Position = UDim2.new(0.5, -140, 0.5, -210)
     MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    MainFrame.Active = true
-    MainFrame.Draggable = true -- Có thể kéo menu
+    MainFrame.Active = true; MainFrame.Draggable = true 
     Instance.new("UICorner", MainFrame)
 
-    -- Thanh Header Đỏ
+    -- Header Đỏ
     local Header = Instance.new("Frame", MainFrame)
-    Header.Size = UDim2.new(1, 0, 0, 40); Header.BackgroundColor3 = Color3.fromRGB(210, 40, 40)
+    Header.Size = UDim2.new(1, 0, 0, 45); Header.BackgroundColor3 = Color3.fromRGB(210, 40, 40)
     Instance.new("UICorner", Header)
     local Title = Instance.new("TextLabel", Header)
     Title.Size = UDim2.new(1, 0, 1, 0); Title.Text = "BLOX FRUIT MAX"; Title.TextColor3 = Color3.new(1,1,1); Title.Font = "GothamBold"; Title.BackgroundTransparency = 1
 
-    -- NÚT ẨN/HIỆN MENU (M)
+    -- NÚT ẨN MENU (Chữ M tròn)
     local ToggleBtn = Instance.new("TextButton", MenuGui)
     ToggleBtn.Size = UDim2.new(0, 45, 0, 45); ToggleBtn.Position = UDim2.new(0, 10, 0.5, -22)
     ToggleBtn.Text = "M"; ToggleBtn.BackgroundColor3 = Color3.fromRGB(210, 40, 40); ToggleBtn.TextColor3 = Color3.new(1,1,1)
     Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(1, 0)
-    
-    ToggleBtn.MouseButton1Click:Connect(function()
-        MainFrame.Visible = not MainFrame.Visible -- Chức năng ẩn menu
-    end)
+    ToggleBtn.MouseButton1Click:Connect(function() MainFrame.Visible = not MainFrame.Visible end)
 
-    -- THÔNG TIN SERVER & HẠN DÙNG (TỤT THỜI GIAN)
-    local InfoPanel = Instance.new("TextLabel", MainFrame)
-    InfoPanel.Size = UDim2.new(1, 0, 0, 50); InfoPanel.Position = UDim2.new(0, 0, 0, 45)
-    InfoPanel.BackgroundColor3 = Color3.fromRGB(45, 45, 45); InfoPanel.TextColor3 = Color3.new(1, 1, 1)
-    InfoPanel.Font = "GothamBold"; InfoPanel.TextSize = 10; InfoPanel.RichText = true
+    -- THÔNG TIN SERVER & TỤT THỜI GIAN
+    local InfoLabel = Instance.new("TextLabel", MainFrame)
+    InfoLabel.Size = UDim2.new(1, 0, 0, 50); InfoLabel.Position = UDim2.new(0, 0, 0, 45)
+    InfoLabel.BackgroundColor3 = Color3.fromRGB(40, 40, 40); InfoLabel.TextColor3 = Color3.new(1, 1, 1); InfoLabel.Font = "GothamBold"; InfoLabel.TextSize = 10; InfoLabel.RichText = true
     
     task.spawn(function()
         while task.wait(1) do
-            local pCount = #Players:GetPlayers()
-            local tLeft = GetTimeLeft(startTime, maxDuration)
-            InfoPanel.Text = string.format("SERVER: <font color='#00FF00'>ONLINE %d</font>\nHẠN DÙNG: <font color='#FFFF00'>%s</font>", pCount, tLeft)
-            if os.time() - startTime >= maxDuration then LocalPlayer:Kick("Hết hạn sử dụng!") end
+            local elapsed = os.time() - startTime
+            local timeLeft = duration - elapsed
+            InfoLabel.Text = string.format("SERVER: <font color='#00FF00'>ONLINE %d</font>\nHẠN DÙNG: <font color='#FFFF00'>%s</font>", #Players:GetPlayers(), FormatTime(timeLeft))
+            if timeLeft <= 0 then LocalPlayer:Kick("Key đã hết hạn!") end
         end
     end)
 
     -- CÁC NÚT CHỨC NĂNG
     local function CreateBtn(name, configKey, y)
         local btn = Instance.new("TextButton", MainFrame)
-        btn.Size = UDim2.new(0, 240, 0, 35); btn.Position = UDim2.new(0.5, -120, 0, y); btn.Text = name; btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60); btn.TextColor3 = Color3.new(1,1,1); btn.Font = "GothamBold"
+        btn.Size = UDim2.new(0, 240, 0, 38); btn.Position = UDim2.new(0.5, -120, 0, y); btn.Text = name; btn.BackgroundColor3 = Color3.fromRGB(55, 55, 55); btn.TextColor3 = Color3.new(1,1,1); btn.Font = "GothamBold"
         Instance.new("UICorner", btn)
         btn.MouseButton1Click:Connect(function()
             _G.Config[configKey] = not _G.Config[configKey]
@@ -81,33 +78,30 @@ local function LaunchMainScript(startTime, maxDuration)
         end)
     end
 
-    CreateBtn("BẬT/TẮT AIMBOT", "Aimbot", 100)
-    CreateBtn("BẬT/TẮT HITBOX", "Hitbox", 145)
-    CreateBtn("ESP LINE (ĐẦU)", "ESP_Line", 190)
-    CreateBtn("ESP BOX", "ESP_Box", 235)
-    CreateBtn("ESP MÁU (HP)", "ESP_HP", 280)
+    CreateBtn("BẬT/TẮT AIMBOT", "Aimbot", 105)
+    CreateBtn("BẬT/TẮT HITBOX", "Hitbox", 155)
+    CreateBtn("ESP LINE (ĐẦU)", "ESP_Line", 205)
+    CreateBtn("ESP KHUNG (BOX)", "ESP_Box", 255)
+    CreateBtn("ESP MÁU (HP)", "ESP_HP", 305)
 end
 
 -- [[ 5. GIAO DIỆN NHẬP KEY KHỞI ĐẦU ]] --
 local KeyGui = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
-local MainKey = Instance.new("Frame", KeyGui)
-MainKey.Size = UDim2.new(0, 320, 0, 200); MainKey.Position = UDim2.new(0.5, -160, 0.5, -100); MainKey.BackgroundColor3 = Color3.new(1,1,1)
-Instance.new("UICorner", MainKey)
+local KeyFrame = Instance.new("Frame", KeyGui)
+KeyFrame.Size = UDim2.new(0, 320, 0, 200); KeyFrame.Position = UDim2.new(0.5, -160, 0.5, -100); KeyFrame.BackgroundColor3 = Color3.new(1,1,1); Instance.new("UICorner", KeyFrame)
 
-local Input = Instance.new("TextBox", MainKey)
-Input.Size = UDim2.new(0, 260, 0, 45); Input.Position = UDim2.new(0.5, -130, 0.4, 0); Input.PlaceholderText = "Dán Key..."; Input.Text = "PhamNghiaaDepTrai"; Input.BackgroundColor3 = Color3.fromRGB(240, 240, 240)
-Instance.new("UICorner", Input)
+local KeyInput = Instance.new("TextBox", KeyFrame)
+KeyInput.Size = UDim2.new(0, 260, 0, 45); KeyInput.Position = UDim2.new(0.5, -130, 0.4, 0); KeyInput.PlaceholderText = "Dán Key vào đây..."; KeyInput.Text = "tudeptrai2013"; KeyInput.BackgroundColor3 = Color3.fromRGB(240, 240, 240); Instance.new("UICorner", KeyInput)
 
-local Confirm = Instance.new("TextButton", MainKey)
-Confirm.Size = UDim2.new(0, 140, 0, 40); Confirm.Position = UDim2.new(0.7, -70, 0.75, 0); Confirm.Text = "XÁC NHẬN"; Confirm.BackgroundColor3 = Color3.fromRGB(0, 200, 100); Confirm.TextColor3 = Color3.new(1,1,1)
-Instance.new("UICorner", Confirm)
+local Confirm = Instance.new("TextButton", KeyFrame)
+Confirm.Size = UDim2.new(0, 140, 0, 40); Confirm.Position = UDim2.new(0.5, -70, 0.75, 0); Confirm.Text = "XÁC NHẬN"; Confirm.BackgroundColor3 = Color3.fromRGB(0, 200, 100); Confirm.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", Confirm)
 
 Confirm.MouseButton1Click:Connect(function()
-    if Keys[Input.Text] then
-        local s = os.time(); local d = Keys[Input.Text]
+    if KeyDatabase[KeyInput.Text] then
+        local start, dur = os.time(), KeyDatabase[KeyInput.Text]
         KeyGui:Destroy()
-        LaunchMainScript(s, d)
+        LaunchMain(start, dur)
     else
-        Input.Text = ""; Input.PlaceholderText = "SAI KEY!"
+        KeyInput.Text = ""; KeyInput.PlaceholderText = "SAI KEY!"
     end
 end)
