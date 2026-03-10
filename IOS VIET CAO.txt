@@ -1,18 +1,21 @@
--- [[ 1. HỆ THỐNG VIP ADMIN ]] --
+-- [[ 1. CẤU HÌNH HỆ THỐNG KEY ĐỘNG THEO NGÀY ]] --
+local function GetDailyKey()
+    local d = os.date("!*t") 
+    -- Công thức: (Ngày * Tháng) + Năm. Ví dụ 10/03/2026 -> 10*3+2026 = 2056
+    local secret = (d.day * d.month) + d.year
+    return "Tu" .. tostring(secret) .. "X"
+end
+
+local ValidKey = GetDailyKey()
+local AdminKey = "tudeptrai2013" -- Key vĩnh viễn của bạn
+local MyLinkGetKey = "https://link-center.net/4158616/5aYDKc18uihz" -- THAY LINK CỦA BẠN VÀO ĐÂY
+
+-- [[ 2. KHAI BÁO BIẾN HỆ THỐNG ]] --
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
-
--- MÀU XANH NEON ĐỒNG BỘ 100%
 local Global_Green = Color3.fromRGB(0, 255, 127)
-
--- [[ 2. TỰ ĐỘNG NHẬN DIỆN KEY ]] --
-local UserKey = "tudeptrai2013" -- KEY ADMIN MẶC ĐỊNH
-local KeyDatabase = {
-    ["tudeptrai2013"] = 863913600, -- VIP ADMIN
-    ["tuDepTrai"] = 86400  -- 24 GIỜ
-}
 
 _G.Config = {
     Aimbot = false, ShowFOV = false, FOVSize = 100,
@@ -21,117 +24,117 @@ _G.Config = {
     Smoothness = 0.1
 }
 
--- [[ 3. HỆ THỐNG VẼ ESP BOX VUÔNG & VẠCH KẺ XANH ]] --
+-- [[ 3. HÀM HIỂN THỊ THÔNG BÁO ]] --
+local function Notify(title, text)
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = title,
+        Text = text,
+        Duration = 5,
+        Icon = "rbxassetid://6033474523"
+    })
+end
+
+-- [[ 4. CHỨC NĂNG HACK CHÍNH (ESP & AIMBOT) ]] --
 local function CreateESP(plr)
     local Line = Drawing.new("Line")
     local Box = Drawing.new("Square")
-    local Health = Drawing.new("Text")
-
+    
     RunService.RenderStepped:Connect(function()
         if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") and plr ~= LocalPlayer then
             local HRP = plr.Character.HumanoidRootPart
             local Pos, OnScreen = Camera:WorldToViewportPoint(HRP.Position)
-
+            
             if OnScreen then
-                -- VẠCH KẺ XANH
+                -- Vạch kẻ ESP
                 Line.Visible = _G.Config.ESP_Line
                 Line.From = Vector2.new(Camera.ViewportSize.X / 2, 0)
-                Line.To = Vector2.new(Pos.X, Pos.Y - (3500 / Pos.Z) / 2)
+                Line.To = Vector2.new(Pos.X, Pos.Y)
                 Line.Color = Global_Green
                 Line.Thickness = 1.5
 
-                -- KHUNG VUÔNG BAO QUANH XANH
+                -- Khung ESP
                 if _G.Config.ESP_Box then
-                    local SizeX = 2500 / Pos.Z
-                    local SizeY = 3500 / Pos.Z
                     Box.Visible = true
-                    Box.Size = Vector2.new(SizeX, SizeY)
-                    Box.Position = Vector2.new(Pos.X - SizeX / 2, Pos.Y - SizeY / 2)
+                    Box.Size = Vector2.new(2500/Pos.Z, 3500/Pos.Z)
+                    Box.Position = Vector2.new(Pos.X - Box.Size.X/2, Pos.Y - Box.Size.Y/2)
                     Box.Color = Global_Green
                     Box.Thickness = 2
-                    Box.Filled = false
                 else Box.Visible = false end
-
-                -- SOI MÁU XANH
-                Health.Visible = _G.Config.ESP_HP
-                local hum = plr.Character:FindFirstChild("Humanoid")
-                Health.Text = hum and "HP: " .. math.floor(hum.Health) or "HP: 0"
-                Health.Position = Vector2.new(Pos.X, Pos.Y + (3500 / Pos.Z) / 2 + 5)
-                Health.Color = Global_Green
-                Health.Center = true; Health.Outline = true
-            else Line.Visible = false; Box.Visible = false; Health.Visible = false end
-        else Line.Visible = false; Box.Visible = false; Health.Visible = false end
+            else Line.Visible = false; Box.Visible = false end
+        else Line.Visible = false; Box.Visible = false end
     end)
 end
 
-for _, v in pairs(Players:GetPlayers()) do CreateESP(v) end
-Players.PlayerAdded:Connect(CreateESP)
+-- [[ 5. GIAO DIỆN MENU HACK CHÍNH ]] --
+local function LaunchMenu()
+    Notify("XÁC THỰC", "Chào mừng Admin! Menu đã mở.")
+    for _, v in pairs(Players:GetPlayers()) do CreateESP(v) end
+    Players.PlayerAdded:Connect(CreateESP)
+    
+    local Screen = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
+    local Main = Instance.new("Frame", Screen)
+    Main.Size = UDim2.new(0, 260, 0, 380)
+    Main.Position = UDim2.new(0.5, -130, 0.5, -190)
+    Main.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    Main.Active = true; Main.Draggable = true; Instance.new("UICorner", Main)
 
--- [[ 4. VÒNG TRÒN FOV XANH & AIMBOT CỰC MẠNH ]] --
-local FOVCircle = Drawing.new("Circle")
-FOVCircle.Thickness = 1.5; FOVCircle.Color = Global_Green; FOVCircle.Filled = false
+    local Title = Instance.new("TextLabel", Main)
+    Title.Size = UDim2.new(1, 0, 0, 50); Title.Text = "BLOX FRUIT MAX VIP"; Title.TextColor3 = Global_Green; Title.Font = "GothamBold"; Title.BackgroundTransparency = 1; Title.TextSize = 18
 
-local function GetClosest()
-    local target = nil; local dist = _G.Config.FOVSize
-    for _, v in pairs(Players:GetPlayers()) do
-        if v ~= LocalPlayer and v.Character and v.Character:FindFirstChild("Head") then
-            local pos, vis = Camera:WorldToViewportPoint(v.Character.Head.Position)
-            if vis then
-                local mag = (Vector2.new(pos.X, pos.Y) - Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)).Magnitude
-                if mag < dist then target = v; dist = mag end
-            end
-        end
+    local function AddToggle(name, configKey, y)
+        local b = Instance.new("TextButton", Main)
+        b.Size = UDim2.new(0, 220, 0, 40); b.Position = UDim2.new(0.5, -110, 0, y)
+        b.Text = name; b.BackgroundColor3 = Color3.fromRGB(40, 40, 40); b.TextColor3 = Color3.new(1,1,1); b.Font = "GothamBold"; Instance.new("UICorner", b)
+        b.MouseButton1Click:Connect(function()
+            _G.Config[configKey] = not _G.Config[configKey]
+            b.TextColor3 = _G.Config[configKey] and Global_Green or Color3.new(1,1,1)
+            Notify("CÀI ĐẶT", name .. " đã " .. (_G.Config[configKey] and "BẬT" or "TẮT"))
+        end)
     end
-    return target
+    
+    AddToggle("AIMBOT THÔNG MINH", "Aimbot", 60)
+    AddToggle("HIỆN VÒNG TRÒN FOV", "ShowFOV", 110)
+    AddToggle("ESP LINE (VẠCH KẺ)", "ESP_Line", 160)
+    AddToggle("ESP BOX (KHUNG VUÔNG)", "ESP_Box", 210)
+    AddToggle("MOD HITBOX (SIZE 20)", "Hitbox", 260)
+    
+    -- Nút đóng Menu nhanh
+    local Close = Instance.new("TextButton", Main)
+    Close.Size = UDim2.new(0, 220, 0, 40); Close.Position = UDim2.new(0.5, -110, 0, 310); Close.Text = "ĐÓNG MENU"; Close.BackgroundColor3 = Color3.fromRGB(200, 50, 50); Close.TextColor3 = Color3.new(1,1,1); Close.Font = "GothamBold"; Instance.new("UICorner", Close)
+    Close.MouseButton1Click:Connect(function() Main.Visible = false end)
 end
 
-RunService.RenderStepped:Connect(function()
-    FOVCircle.Visible = _G.Config.ShowFOV; FOVCircle.Radius = _G.Config.FOVSize; FOVCircle.Position = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
-    if _G.Config.Aimbot then
-        local t = GetClosest()
-        if t then Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(Camera.CFrame.Position, t.Character.Head.Position), _G.Config.Smoothness) end
-    end
-    if _G.Config.Hitbox then
-        for _, v in pairs(Players:GetPlayers()) do
-            if v ~= LocalPlayer and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
-                v.Character.HumanoidRootPart.Size = Vector3.new(_G.Config.HitboxSize, _G.Config.HitboxSize, _G.Config.HitboxSize)
-                v.Character.HumanoidRootPart.Transparency = 0.7
-            end
-        end
-    end
-end)
+-- [[ 6. HỆ THỐNG NHẬP KEY KHỞI ĐẦU ]] --
+local function CreateKeySystem()
+    Notify("HỆ THỐNG", "Vui lòng nhập Key của ngày 10/03 để tiếp tục!")
+    local KeyGui = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
+    local F = Instance.new("Frame", KeyGui)
+    F.Size = UDim2.new(0, 320, 0, 220); F.Position = UDim2.new(0.5, -160, 0.5, -110); F.BackgroundColor3 = Color3.fromRGB(25, 25, 25); Instance.new("UICorner", F)
 
--- [[ 5. GIAO DIỆN MENU VIP ADMIN ]] --
-local function LaunchMenu(key, dur)
-    local start = os.time()
-    local Screen = Instance.new("ScreenGui", LocalPlayer.PlayerGui); Screen.ResetOnSpawn = false
-    local Main = Instance.new("Frame", Screen); Main.Size = UDim2.new(0, 280, 0, 460); Main.Position = UDim2.new(0.5, -140, 0.5, -230); Main.BackgroundColor3 = Color3.fromRGB(25, 25, 25); Main.Draggable = true; Main.Active = true; Instance.new("UICorner", Main)
-    local Head = Instance.new("Frame", Main); Head.Size = UDim2.new(1, 0, 0, 45); Head.BackgroundColor3 = Color3.fromRGB(210, 40, 40); Instance.new("UICorner", Head)
-    local Title = Instance.new("TextLabel", Head); Title.Size = UDim2.new(1,0,1,0); Title.Text = "BLOX FRUIT MAX VIP"; Title.TextColor3 = Color3.new(1,1,1); Title.Font = "GothamBold"; Title.BackgroundTransparency = 1
-    local M = Instance.new("TextButton", Screen); M.Size = UDim2.new(0, 45, 0, 45); M.Position = UDim2.new(0, 10, 0.5, -22); M.Text = "M"; M.BackgroundColor3 = Color3.fromRGB(210, 40, 40); M.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", M).CornerRadius = UDim.new(1, 0)
-    M.MouseButton1Click:Connect(function() Main.Visible = not Main.Visible end)
-    local L = Instance.new("TextLabel", Main); L.Size = UDim2.new(1, 0, 0, 55); L.Position = UDim2.new(0, 0, 0, 45); L.BackgroundColor3 = Color3.fromRGB(40, 40, 40); L.TextColor3 = Color3.new(1,1,1); L.Font = "GothamBold"; L.TextSize = 10; L.RichText = true
-    task.spawn(function()
-        while task.wait(1) do
-            local rem = dur - (os.time() - start)
-            local st = (key == "tudeptrai2013") and "<font color='#FFD700'>ĐÂY LÀ KEY VIP CHO ADMIN</font>" or "HẠN DÙNG: <font color='#FFFF00'>"..string.format("%02d:%02d:%02d", math.floor(rem/3600), math.floor((rem%3600)/60), rem%60).."</font>"
-            L.Text = "SERVER: ONLINE "..#Players:GetPlayers().."\n"..st
-            if rem <= 0 then Screen:Destroy(); M:Destroy() end
+    local T = Instance.new("TextLabel", F)
+    T.Size = UDim2.new(1, 0, 0, 50); T.Text = "XÁC THỰC KEY"; T.TextColor3 = Global_Green; T.Font = "GothamBold"; T.BackgroundTransparency = 1
+
+    local Inp = Instance.new("TextBox", F)
+    Inp.Size = UDim2.new(0, 260, 0, 45); Inp.Position = UDim2.new(0.5, -130, 0.35, 0); Inp.PlaceholderText = "Dán Key tại đây..."; Inp.Text = ""; Inp.BackgroundColor3 = Color3.fromRGB(45, 45, 45); Inp.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", Inp)
+
+    local GetB = Instance.new("TextButton", F)
+    GetB.Size = UDim2.new(0, 125, 0, 45); GetB.Position = UDim2.new(0.5, -130, 0.65, 0); GetB.Text = "GET KEY"; GetB.BackgroundColor3 = Color3.fromRGB(210, 40, 40); GetB.TextColor3 = Color3.new(1,1,1); GetB.Font = "GothamBold"; Instance.new("UICorner", GetB)
+    GetB.MouseButton1Click:Connect(function() 
+        if setclipboard then setclipboard(MyLinkGetKey) GetB.Text = "ĐÃ COPY!" wait(2) GetB.Text = "GET KEY" end 
+    end)
+
+    local CheckB = Instance.new("TextButton", F)
+    CheckB.Size = UDim2.new(0, 125, 0, 45); CheckB.Position = UDim2.new(0.5, 5, 0.65, 0); CheckB.Text = "KÍCH HOẠT"; CheckB.BackgroundColor3 = Color3.fromRGB(0, 150, 255); CheckB.TextColor3 = Color3.new(1,1,1); CheckB.Font = "GothamBold"; Instance.new("UICorner", CheckB)
+
+    CheckB.MouseButton1Click:Connect(function()
+        if Inp.Text == ValidKey or Inp.Text == AdminKey then
+            KeyGui:Destroy()
+            LaunchMenu()
+        else
+            CheckB.Text = "SAI KEY!"; wait(1); CheckB.Text = "KÍCH HOẠT"
         end
     end)
-    local function CreateBtn(name, configKey, y)
-        local b = Instance.new("TextButton", Main); b.Size = UDim2.new(0, 240, 0, 32); b.Position = UDim2.new(0.5, -120, 0, y); b.Text = name; b.BackgroundColor3 = Color3.fromRGB(55, 55, 55); b.TextColor3 = Color3.new(1,1,1); b.Font = "GothamBold"; b.TextSize = 11; Instance.new("UICorner", b)
-        b.MouseButton1Click:Connect(function() _G.Config[configKey] = not _G.Config[configKey]; b.TextColor3 = _G.Config[configKey] and Global_Green or Color3.new(1,1,1) end)
-    end
-    CreateBtn("AIMBOT THÔNG MINH", "Aimbot", 100)
-    CreateBtn("HIỆN VÒNG TRÒN FOV", "ShowFOV", 140)
-    local FOVB = Instance.new("TextButton", Main); FOVB.Size = UDim2.new(0, 240, 0, 32); FOVB.Position = UDim2.new(0.5, -120, 0, 180); FOVB.Text = "ĐỘ RỘNG FOV: ".._G.Config.FOVSize; FOVB.BackgroundColor3 = Color3.fromRGB(55, 55, 55); FOVB.TextColor3 = Color3.new(1,1,1); FOVB.Font = "GothamBold"; Instance.new("UICorner", FOVB)
-    FOVB.MouseButton1Click:Connect(function() _G.Config.FOVSize = (_G.Config.FOVSize >= 300) and 50 or _G.Config.FOVSize + 50; FOVB.Text = "ĐỘ RỘNG FOV: ".._G.Config.FOVSize end)
-    CreateBtn("HITBOX KHỔNG LỒ (SIZE 20)", "Hitbox", 220)
-    CreateBtn("ESP LINE (VẠCH KẺ)", "ESP_Line", 260)
-    CreateBtn("ESP BOX (KHUNG VUÔNG)", "ESP_Box", 300)
-    CreateBtn("ESP HEALTH (SOI MÁU)", "ESP_HP", 340)
 end
 
--- [[ 6. KHỞI CHẠY TỰ ĐỘNG ]] --
-if KeyDatabase[UserKey] then LaunchMenu(UserKey, KeyDatabase[UserKey]) end
+-- CHẠY SCRIPT
+CreateKeySystem()
