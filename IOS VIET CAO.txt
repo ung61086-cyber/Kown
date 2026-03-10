@@ -1,46 +1,38 @@
--- [[ 1. KHỞI TẠO HỆ THỐNG ]] --
+-- [[ 1. HỆ THỐNG DỊCH VỤ ]] --
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
--- [[ 2. DANH SÁCH KEY ]] --
+-- [[ 2. CẤU HÌNH KEY & MOD ]] --
 local Keys = {
-    ["tudeptrai2013"] = 863913600, -- VIP 9999 Ngày
-    ["Tudeptrai"] = 86400, ["Tudeptrai09"] = 86400, ["Tudeptrai10"] = 86400,
-    ["Tudeptrai33"] = 86400, ["Tudeptrai88"] = 86400, ["Tudeptrai98"] = 86400
+    ["tudeptrai2013"] = 863913600, -- VIP
+    ["Tudeptrai"] = 86400, ["Tudeptrai09"] = 86400
 }
 
 _G.Config = {
-    Hitbox = false,
-    HitboxSize = 15,
-    ESP_Line = false,
-    TeamCheck = true
+    Aimbot = false, Hitbox = false, HitboxSize = 15,
+    ESP_Line = false, ESP_Box = false, ESP_HP = false
 }
 
-local Cache = {Lines = {}}
+local Cache = {Lines = {}, Boxes = {}, HealthBars = {}}
 
--- [[ 3. HÀM TẠO VẠCH KẺ (LINE) TRÊN ĐẦU ]] --
-local function CreateLine(v)
-    local l = Drawing.new("Line")
-    l.Visible = false
-    l.Color = Color3.fromRGB(255, 255, 255)
-    l.Thickness = 1.5
-    l.Transparency = 1
-    Cache.Lines[v.Name] = l
+-- [[ 3. HÀM TẠO ESP (BOX & HP) ]] --
+local function CreateESP(v)
+    local l = Drawing.new("Line"); l.Visible = false; l.Color = Color3.new(1,1,1); Cache.Lines[v.Name] = l
+    local b = {T = Drawing.new("Line"), B = Drawing.new("Line"), L = Drawing.new("Line"), R = Drawing.new("Line")}
+    for _, i in pairs(b) do i.Visible = false; i.Color = Color3.new(1,1,1) end; Cache.Boxes[v.Name] = b
+    local h = {Out = Drawing.new("Square"), Main = Drawing.new("Square")}
+    h.Out.Filled = true; h.Out.Color = Color3.new(0,0,0); h.Main.Filled = true; Cache.HealthBars[v.Name] = h
 end
 
--- [[ 4. GIAO DIỆN MENU CHÍNH (KHI NHẬP KEY XONG) ]] --
+-- [[ 4. GIAO DIỆN MENU CHÍNH (THEO ẢNH MẪU) ]] --
 local function LaunchMainScript(startTime, maxDuration)
     local MenuGui = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
-    MenuGui.Name = "BloxFruitMax_Final"
-
     local MainFrame = Instance.new("Frame", MenuGui)
-    MainFrame.Size = UDim2.new(0, 280, 0, 350)
-    MainFrame.Position = UDim2.new(0.5, -140, 0.5, -175)
+    MainFrame.Size = UDim2.new(0, 280, 0, 420) -- Kích thước rộng để chứa đủ nút
+    MainFrame.Position = UDim2.new(0.5, -140, 0.5, -210)
     MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    MainFrame.Active = true
-    MainFrame.Draggable = true -- Cho phép kéo menu
     Instance.new("UICorner", MainFrame)
 
     local Header = Instance.new("Frame", MainFrame)
@@ -48,27 +40,24 @@ local function LaunchMainScript(startTime, maxDuration)
     Instance.new("UICorner", Header)
 
     local Title = Instance.new("TextLabel", Header)
-    Title.Size = UDim2.new(1, 0, 1, 0); Title.Text = "BLOX FRUIT MAX"; Title.TextColor3 = Color3.new(1,1,1); Title.Font = "GothamBold"; Title.TextSize = 16; Title.BackgroundTransparency = 1
+    Title.Size = UDim2.new(1, 0, 1, 0); Title.Text = "BLOX FRUIT MAX"; Title.TextColor3 = Color3.new(1,1,1); Title.Font = "GothamBold"; Title.BackgroundTransparency = 1
 
-    -- Bảng thông tin Server & Thời gian
+    -- Thông tin Server & Hạn dùng
     local InfoLabel = Instance.new("TextLabel", MainFrame)
     InfoLabel.Size = UDim2.new(1, 0, 0, 50); InfoLabel.Position = UDim2.new(0, 0, 0, 45)
-    InfoLabel.BackgroundColor3 = Color3.fromRGB(40, 40, 40); InfoLabel.TextColor3 = Color3.new(1,1,1); InfoLabel.Font = "GothamBold"; InfoLabel.TextSize = 11; InfoLabel.RichText = true
-
+    InfoLabel.BackgroundColor3 = Color3.fromRGB(40, 40, 40); InfoLabel.TextColor3 = Color3.new(1, 1, 1); InfoLabel.Font = "GothamBold"; InfoLabel.TextSize = 11; InfoLabel.RichText = true
+    
     task.spawn(function()
         while task.wait(1) do
             local pCount = #Players:GetPlayers()
             local diff = maxDuration - (os.time() - startTime)
-            local timeStr = (diff > 1000000) and "VĨNH VIỄN" or string.format("%d phút", math.floor(diff/60))
-            InfoLabel.Text = "SERVER: <font color='#00FF00'>ONLINE " .. pCount .. "</font>\nHẠN DÙNG: <font color='#FFFF00'>" .. timeStr .. "</font>"
-            if diff <= 0 then LocalPlayer:Kick("Key hết hạn!") end
+            InfoLabel.Text = string.format("SERVER: <font color='#00FF00'>ONLINE %d</font>\nHẠN DÙNG: <font color='#FFFF00'>%d phút</font>", pCount, math.floor(diff/60))
         end
     end)
 
-    -- Hàm tạo nút bấm tương tác (TC 100%)
-    local function CreateButton(name, configKey, yPos)
+    local function CreateBtn(name, configKey, yPos)
         local btn = Instance.new("TextButton", MainFrame)
-        btn.Size = UDim2.new(0, 240, 0, 40); btn.Position = UDim2.new(0.5, -120, 0, yPos); btn.Text = name; btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60); btn.TextColor3 = Color3.new(1,1,1); btn.Font = "GothamBold"
+        btn.Size = UDim2.new(0, 240, 0, 35); btn.Position = UDim2.new(0.5, -120, 0, yPos); btn.Text = name; btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50); btn.TextColor3 = Color3.new(1,1,1); btn.Font = "GothamBold"
         Instance.new("UICorner", btn)
         btn.MouseButton1Click:Connect(function()
             _G.Config[configKey] = not _G.Config[configKey]
@@ -76,67 +65,75 @@ local function LaunchMainScript(startTime, maxDuration)
         end)
     end
 
-    CreateButton("BẬT/TẮT HITBOX", "Hitbox", 110)
-    CreateButton("BẬT/TẮT ESP LINE (ĐẦU)", "ESP_Line", 165)
+    -- Danh sách nút chức năng
+    CreateBtn("BẬT/TẮT AIMBOT", "Aimbot", 100)
+    CreateBtn("BẬT/TẮT HITBOX", "Hitbox", 145)
+    CreateBtn("ESP LINE (ĐẦU)", "ESP_Line", 190)
+    CreateBtn("ESP BOX", "ESP_Box", 235)
+    CreateBtn("ESP MÁU (HP)", "ESP_HP", 280)
 
-    -- Vòng lặp Render (ESP & Hitbox)
+    -- Vòng lặp Render (Aimbot, Hitbox, ESP)
     RunService.RenderStepped:Connect(function()
         for _, v in pairs(Players:GetPlayers()) do
-            if v ~= LocalPlayer and v.Character then
-                local head = v.Character:FindFirstChild("Head")
-                local hrp = v.Character:FindFirstChild("HumanoidRootPart")
-                
+            if v == LocalPlayer then continue end
+            local char = v.Character
+            local hrp = char and char:FindFirstChild("HumanoidRootPart")
+            local hum = char and char:FindFirstChild("Humanoid")
+            
+            if hrp and hum and hum.Health > 0 then
                 -- Hitbox
-                if hrp then
-                    hrp.Size = _G.Config.Hitbox and Vector3.new(_G.Config.HitboxSize, _G.Config.HitboxSize, _G.Config.HitboxSize) or Vector3.new(2, 2, 1)
-                    hrp.Transparency = _G.Config.Hitbox and 0.7 or 1
-                end
-
-                -- ESP Line trỏ thẳng lên đầu
-                if head then
-                    if not Cache.Lines[v.Name] then CreateLine(v) end
-                    local line = Cache.Lines[v.Name]
-                    local pos, onScreen = Camera:WorldToViewportPoint(head.Position + Vector3.new(0, 1.5, 0))
+                hrp.Size = _G.Config.Hitbox and Vector3.new(_G.Config.HitboxSize, _G.Config.HitboxSize, _G.Config.HitboxSize) or Vector3.new(2, 2, 1)
+                hrp.Transparency = _G.Config.Hitbox and 0.7 or 1
+                
+                -- ESP Logic
+                if not Cache.Lines[v.Name] then CreateESP(v) end
+                local pos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
+                
+                if onScreen then
+                    local sizeX, sizeY = 2000/pos.Z, 3000/pos.Z
+                    local x, y = pos.X - sizeX/2, pos.Y - sizeY/2
                     
-                    if onScreen and _G.Config.ESP_Line then
-                        line.Visible = true
-                        line.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
-                        line.To = Vector2.new(pos.X, pos.Y)
-                    else
-                        line.Visible = false
-                    end
+                    Cache.Lines[v.Name].Visible = _G.Config.ESP_Line
+                    Cache.Lines[v.Name].To = Vector2.new(pos.X, pos.Y)
+                    Cache.Lines[v.Name].From = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y)
+
+                    for _, bLine in pairs(Cache.Boxes[v.Name]) do bLine.Visible = _G.Config.ESP_Box end
+                    Cache.Boxes[v.Name].T.From = Vector2.new(x,y); Cache.Boxes[v.Name].T.To = Vector2.new(x+sizeX,y)
+                    Cache.Boxes[v.Name].B.From = Vector2.new(x,y+sizeY); Cache.Boxes[v.Name].B.To = Vector2.new(x+sizeX,y+sizeY)
+                    
+                    Cache.HealthBars[v.Name].Out.Visible = _G.Config.ESP_HP
+                    Cache.HealthBars[v.Name].Main.Visible = _G.Config.ESP_HP
+                    Cache.HealthBars[v.Name].Main.Size = Vector2.new(2, sizeY * (hum.Health/hum.MaxHealth))
+                else
+                    Cache.Lines[v.Name].Visible = false
+                    for _, bLine in pairs(Cache.Boxes[v.Name]) do bLine.Visible = false end
+                    Cache.HealthBars[v.Name].Out.Visible = false; Cache.HealthBars[v.Name].Main.Visible = false
                 end
             end
         end
     end)
 end
 
--- [[ 5. GIAO DIỆN NHẬP KEY KHỞI ĐẦU ]] --
+-- [[ 5. GIAO DIỆN NHẬP KEY (TC 100%) ]] --
 local KeyGui = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
 local MainKey = Instance.new("Frame", KeyGui)
 MainKey.Size = UDim2.new(0, 320, 0, 200); MainKey.Position = UDim2.new(0.5, -160, 0.5, -100); MainKey.BackgroundColor3 = Color3.new(1,1,1)
 Instance.new("UICorner", MainKey)
 
-local TitleKey = Instance.new("TextLabel", MainKey)
-TitleKey.Size = UDim2.new(1, 0, 0, 50); TitleKey.Text = "NHẬP KEY ĐỂ MỞ SCRIPT"; TitleKey.Font = "GothamBold"; TitleKey.TextSize = 16; TitleKey.BackgroundTransparency = 1
-
 local Input = Instance.new("TextBox", MainKey)
-Input.Size = UDim2.new(0, 260, 0, 45); Input.Position = UDim2.new(0.5, -130, 0.4, 0); Input.PlaceholderText = "Dán Key tại đây..."; Input.Text = ""; Input.BackgroundColor3 = Color3.fromRGB(240, 240, 240)
+Input.Size = UDim2.new(0, 260, 0, 40); Input.Position = UDim2.new(0.5, -130, 0.4, 0); Input.PlaceholderText = "Nhập Key..."; Input.BackgroundColor3 = Color3.fromRGB(240, 240, 240)
 Instance.new("UICorner", Input)
 
 local Confirm = Instance.new("TextButton", MainKey)
-Confirm.Size = UDim2.new(0, 200, 0, 45); Confirm.Position = UDim2.new(0.5, -100, 0.7, 0); Confirm.Text = "XÁC NHẬN"; Confirm.BackgroundColor3 = Color3.fromRGB(0, 200, 100); Confirm.TextColor3 = Color3.new(1,1,1); Confirm.Font = "GothamBold"
+Confirm.Size = UDim2.new(0, 180, 0, 40); Confirm.Position = UDim2.new(0.5, -90, 0.7, 0); Confirm.Text = "XÁC NHẬN"; Confirm.BackgroundColor3 = Color3.fromRGB(0, 200, 100); Confirm.TextColor3 = Color3.new(1,1,1)
 Instance.new("UICorner", Confirm)
 
 Confirm.MouseButton1Click:Connect(function()
-    local val = Input.Text
-    if Keys[val] then
-        local start = os.time()
-        local duration = Keys[val]
+    if Keys[Input.Text] then
+        local s = os.time(); local d = Keys[Input.Text]
         KeyGui:Destroy()
-        LaunchMainScript(start, duration)
+        LaunchMainScript(s, d)
     else
-        Input.Text = ""
-        Input.PlaceholderText = "SAI KEY! VUI LÒNG THỬ LẠI"
+        Input.PlaceholderText = "SAI KEY!"
     end
 end)
