@@ -1,15 +1,14 @@
--- [[ 1. HỆ THỐNG VIP ADMIN ]] --
+-- [[ 1. HỆ THỐNG DỊCH VỤ VIP ]] --
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
--- [[ 2. TỰ ĐỘNG KIỂM TRA KEY ]] --
-local UserKey = "tudeptrai2013" -- Thay đổi key tại đây để test
-
+-- [[ 2. TỰ ĐỘNG NHẬN DIỆN KEY ]] --
+local UserKey = "tudeptrai2013" -- Key Admin mặc định
 local KeyDatabase = {
-    ["tudeptrai2013"] = 863913600, -- MÃ ADMIN
-    ["Tú DepTrai"] = 86400  -- 24 GIỜ
+    ["tudeptrai2013"] = 863913600, -- VIP ADMIN
+    ["PhamNghiaaDepTrai"] = 86400  -- 24 GIỜ
 }
 
 _G.Config = {
@@ -19,115 +18,129 @@ _G.Config = {
     Smoothness = 0.1
 }
 
--- [[ 3. LOGIC AIMBOT & FOV ]] --
-local FOVCircle = Drawing.new("Circle")
-FOVCircle.Thickness = 1.5; FOVCircle.Color = Color3.fromRGB(210, 40, 40); FOVCircle.Filled = false; FOVCircle.Transparency = 1
+-- [[ 3. HỆ THỐNG VẼ ESP & FOV (FIX LỖI 100%) ]] --
+local function CreateESP(plr)
+    local Line = Drawing.new("Line")
+    local Box = Drawing.new("Square")
+    local Health = Drawing.new("Text")
 
-local function GetClosestPlayer()
-    local closest = nil
-    local shortestDistance = math.huge
+    RunService.RenderStepped:Connect(function()
+        if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") and plr ~= LocalPlayer then
+            local HRP = plr.Character.HumanoidRootPart
+            local Pos, OnScreen = Camera:WorldToViewportPoint(HRP.Position)
+
+            if OnScreen and (not _G.Config.ESP_Line == false or not _G.Config.ESP_Box == false or not _G.Config.ESP_HP == false) then
+                -- ESP LINE
+                Line.Visible = _G.Config.ESP_Line
+                Line.From = Vector2.new(Camera.ViewportSize.X / 2, 0)
+                Line.To = Vector2.new(Pos.X, Pos.Y)
+                Line.Color = Color3.fromRGB(210, 40, 40)
+                Line.Thickness = 1.5
+
+                -- ESP BOX
+                Box.Visible = _G.Config.ESP_Box
+                Box.Size = Vector2.new(2500 / Pos.Z, 3500 / Pos.Z)
+                Box.Position = Vector2.new(Pos.X - Box.Size.X / 2, Pos.Y - Box.Size.Y / 2)
+                Box.Color = Color3.new(1, 1, 1)
+                Box.Thickness = 1
+
+                -- ESP HP
+                Health.Visible = _G.Config.ESP_HP
+                local hum = plr.Character:FindFirstChild("Humanoid")
+                Health.Text = hum and "HP: " .. math.floor(hum.Health) or "HP: 0"
+                Health.Position = Vector2.new(Pos.X, Pos.Y + (Box.Size.Y / 2) + 5)
+                Health.Color = Color3.new(0, 1, 0)
+                Health.Center = true; Health.Outline = true
+            else
+                Line.Visible = false; Box.Visible = false; Health.Visible = false
+            end
+        else
+            Line.Visible = false; Box.Visible = false; Health.Visible = false
+        end
+    end)
+end
+
+for _, v in pairs(Players:GetPlayers()) do CreateESP(v) end
+Players.PlayerAdded:Connect(CreateESP)
+
+local FOVCircle = Drawing.new("Circle")
+FOVCircle.Thickness = 1.5; FOVCircle.Color = Color3.fromRGB(210, 40, 40); FOVCircle.Filled = false
+
+-- [[ 4. LOGIC AIMBOT & HITBOX ]] --
+local function GetClosest()
+    local target = nil; local dist = _G.Config.FOVSize
     for _, v in pairs(Players:GetPlayers()) do
-        if v ~= LocalPlayer and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
-            local pos, onScreen = Camera:WorldToViewportPoint(v.Character.HumanoidRootPart.Position)
-            if onScreen then
-                local distance = (Vector2.new(pos.X, pos.Y) - Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)).Magnitude
-                if distance < shortestDistance and distance <= _G.Config.FOVSize then
-                    closest = v; shortestDistance = distance
-                end
+        if v ~= LocalPlayer and v.Character and v.Character:FindFirstChild("Head") then
+            local pos, vis = Camera:WorldToViewportPoint(v.Character.Head.Position)
+            if vis then
+                local mag = (Vector2.new(pos.X, pos.Y) - Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)).Magnitude
+                if mag < dist then target = v; dist = mag end
             end
         end
     end
-    return closest
+    return target
 end
 
 RunService.RenderStepped:Connect(function()
-    FOVCircle.Visible = _G.Config.ShowFOV; FOVCircle.Radius = _G.Config.FOVSize
-    FOVCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+    FOVCircle.Visible = _G.Config.ShowFOV
+    FOVCircle.Radius = _G.Config.FOVSize
+    FOVCircle.Position = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
+
     if _G.Config.Aimbot then
-        local target = GetClosestPlayer()
-        if target then Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(Camera.CFrame.Position, target.Character.Head.Position), _G.Config.Smoothness) end
+        local t = GetClosest()
+        if t then Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(Camera.CFrame.Position, t.Character.Head.Position), _G.Config.Smoothness) end
     end
+
     if _G.Config.Hitbox then
         for _, v in pairs(Players:GetPlayers()) do
             if v ~= LocalPlayer and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
                 v.Character.HumanoidRootPart.Size = Vector3.new(_G.Config.HitboxSize, _G.Config.HitboxSize, _G.Config.HitboxSize)
-                v.Character.HumanoidRootPart.Transparency = 0.7; v.Character.HumanoidRootPart.CanCollide = false
+                v.Character.HumanoidRootPart.Transparency = 0.7
             end
         end
     end
 end)
 
--- [[ 4. GIAO DIỆN MENU ADMIN (MỞ 100%) ]] --
-local function LaunchMenu(keyUsed, dur)
+-- [[ 5. GIAO DIỆN MENU VIP ADMIN ]] --
+local function LaunchMenu(key, dur)
     local start = os.time()
-    local Screen = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
-    Screen.ResetOnSpawn = false
+    local Screen = Instance.new("ScreenGui", LocalPlayer.PlayerGui); Screen.ResetOnSpawn = false
+    local Main = Instance.new("Frame", Screen); Main.Size = UDim2.new(0, 280, 0, 460); Main.Position = UDim2.new(0.5, -140, 0.5, -230); Main.BackgroundColor3 = Color3.fromRGB(25, 25, 25); Main.Draggable = true; Main.Active = true; Instance.new("UICorner", Main)
+    
+    local Head = Instance.new("Frame", Main); Head.Size = UDim2.new(1, 0, 0, 45); Head.BackgroundColor3 = Color3.fromRGB(210, 40, 40); Instance.new("UICorner", Head)
+    local Title = Instance.new("TextLabel", Head); Title.Size = UDim2.new(1,0,1,0); Title.Text = "BLOX FRUIT MAX VIP"; Title.TextColor3 = Color3.new(1,1,1); Title.Font = "GothamBold"; Title.BackgroundTransparency = 1
 
-    local Main = Instance.new("Frame", Screen)
-    Main.Size = UDim2.new(0, 280, 0, 460); Main.Position = UDim2.new(0.5, -140, 0.5, -230)
-    Main.BackgroundColor3 = Color3.fromRGB(25, 25, 25); Main.Draggable = true; Main.Active = true
-    Instance.new("UICorner", Main)
-
-    -- Header
-    local Head = Instance.new("Frame", Main)
-    Head.Size = UDim2.new(1, 0, 0, 45); Head.BackgroundColor3 = Color3.fromRGB(210, 40, 40)
-    Instance.new("UICorner", Head)
-    local T = Instance.new("TextLabel", Head)
-    T.Size = UDim2.new(1, 0, 1, 0); T.Text = "BLOX FRUIT MAX VIP"; T.TextColor3 = Color3.new(1,1,1); T.Font = "GothamBold"; T.BackgroundTransparency = 1
-
-    -- Nút Ẩn "M"
-    local M = Instance.new("TextButton", Screen)
-    M.Size = UDim2.new(0, 45, 0, 45); M.Position = UDim2.new(0, 10, 0.5, -22)
-    M.Text = "M"; M.BackgroundColor3 = Color3.fromRGB(210, 40, 40); M.TextColor3 = Color3.new(1,1,1)
-    Instance.new("UICorner", M).CornerRadius = UDim.new(1, 0)
+    local M = Instance.new("TextButton", Screen); M.Size = UDim2.new(0, 45, 0, 45); M.Position = UDim2.new(0, 10, 0.5, -22); M.Text = "M"; M.BackgroundColor3 = Color3.fromRGB(210, 40, 40); M.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", M).CornerRadius = UDim.new(1, 0)
     M.MouseButton1Click:Connect(function() Main.Visible = not Main.Visible end)
 
-    -- HIỂN THỊ THÔNG BÁO KEY VIP ADMIN
-    local L = Instance.new("TextLabel", Main)
-    L.Size = UDim2.new(1, 0, 0, 55); L.Position = UDim2.new(0, 0, 0, 45)
-    L.BackgroundColor3 = Color3.fromRGB(40, 40, 40); L.TextColor3 = Color3.new(1,1,1); L.Font = "GothamBold"; L.TextSize = 10; L.RichText = true
-
+    local L = Instance.new("TextLabel", Main); L.Size = UDim2.new(1, 0, 0, 55); L.Position = UDim2.new(0, 0, 0, 45); L.BackgroundColor3 = Color3.fromRGB(40, 40, 40); L.TextColor3 = Color3.new(1,1,1); L.Font = "GothamBold"; L.TextSize = 10; L.RichText = true
     task.spawn(function()
         while task.wait(1) do
             local rem = dur - (os.time() - start)
-            local statusText = ""
-            if keyUsed == "tudeptrai2013" then
-                statusText = "<font color='#FFD700'>ĐÂY LÀ KEY VIP CHO ADMIN</font>" -- Dòng chữ đặc biệt
-            else
-                statusText = "HẠN DÙNG: <font color='#FFFF00'>"..string.format("%02d:%02d:%02d", math.floor(rem/3600), math.floor((rem%3600)/60), rem%60).."</font>"
-            end
-            L.Text = string.format("SERVER: ONLINE %d\n%s", #Players:GetPlayers(), statusText)
-            if rem <= 0 then Screen:Destroy(); M:Destroy(); error("Hết hạn!") end
+            local st = (key == "tudeptrai2013") and "<font color='#FFD700'>ĐÂY LÀ KEY VIP CHO ADMIN</font>" or "HẠN DÙNG: <font color='#FFFF00'>"..string.format("%02d:%02d:%02d", math.floor(rem/3600), math.floor((rem%3600)/60), rem%60).."</font>"
+            L.Text = "SERVER: ONLINE "..#Players:GetPlayers().."\n"..st
+            if rem <= 0 then Screen:Destroy(); M:Destroy() end
         end
     end)
 
-    -- Nút chức năng
-    local function Btn(n, k, y)
-        local b = Instance.new("TextButton", Main)
-        b.Size = UDim2.new(0, 240, 0, 32); b.Position = UDim2.new(0.5, -120, 0, y); b.Text = n; b.BackgroundColor3 = Color3.fromRGB(55, 55, 55); b.TextColor3 = Color3.new(1,1,1); b.Font = "GothamBold"; b.TextSize = 11
-        Instance.new("UICorner", b)
-        b.MouseButton1Click:Connect(function() _G.Config[k] = not _G.Config[k]; b.TextColor3 = _G.Config[k] and Color3.new(0,1,0) or Color3.new(1,1,1) end)
+    local function CreateBtn(name, configKey, y)
+        local b = Instance.new("TextButton", Main); b.Size = UDim2.new(0, 240, 0, 32); b.Position = UDim2.new(0.5, -120, 0, y); b.Text = name; b.BackgroundColor3 = Color3.fromRGB(55, 55, 55); b.TextColor3 = Color3.new(1,1,1); b.Font = "GothamBold"; b.TextSize = 11; Instance.new("UICorner", b)
+        b.MouseButton1Click:Connect(function() _G.Config[configKey] = not _G.Config[configKey]; b.TextColor3 = _G.Config[configKey] and Color3.new(0,1,0) or Color3.new(1,1,1) end)
     end
 
-    Btn("AIMBOT THÔNG MINH", "Aimbot", 100)
-    Btn("HIỆN VÒNG TRÒN FOV", "ShowFOV", 140)
+    CreateBtn("AIMBOT THÔNG MINH", "Aimbot", 100)
+    CreateBtn("HIỆN VÒNG TRÒN FOV", "ShowFOV", 140)
     
-    local FOVBtn = Instance.new("TextButton", Main)
-    FOVBtn.Size = UDim2.new(0, 240, 0, 32); FOVBtn.Position = UDim2.new(0.5, -120, 0, 180); FOVBtn.Text = "ĐỘ RỘNG FOV: ".._G.Config.FOVSize; FOVBtn.BackgroundColor3 = Color3.fromRGB(55, 55, 55); FOVBtn.TextColor3 = Color3.new(1,1,1); FOVBtn.Font = "GothamBold"
-    Instance.new("UICorner", FOVBtn)
-    FOVBtn.MouseButton1Click:Connect(function() _G.Config.FOVSize = (_G.Config.FOVSize >= 300) and 50 or _G.Config.FOVSize + 50; FOVBtn.Text = "ĐỘ RỘNG FOV: ".._G.Config.FOVSize end)
+    local FOVB = Instance.new("TextButton", Main); FOVB.Size = UDim2.new(0, 240, 0, 32); FOVB.Position = UDim2.new(0.5, -120, 0, 180); FOVB.Text = "ĐỘ RỘNG FOV: ".._G.Config.FOVSize; FOVB.BackgroundColor3 = Color3.fromRGB(55, 55, 55); FOVB.TextColor3 = Color3.new(1,1,1); FOVB.Font = "GothamBold"; Instance.new("UICorner", FOVB)
+    FOVB.MouseButton1Click:Connect(function() _G.Config.FOVSize = (_G.Config.FOVSize >= 300) and 50 or _G.Config.FOVSize + 50; FOVB.Text = "ĐỘ RỘNG FOV: ".._G.Config.FOVSize end)
 
-    Btn("HITBOX KHỔNG LỒ (SIZE 20)", "Hitbox", 220)
-    Btn("ESP LINE (VẠCH KẺ)", "ESP_Line", 260)
-    Btn("ESP BOX (KHUNG NHÌN)", "ESP_Box", 300)
-    Btn("ESP HEALTH (SOI MÁU)", "ESP_HP", 340)
+    CreateBtn("HITBOX KHỔNG LỒ (SIZE 20)", "Hitbox", 220)
+    CreateBtn("ESP LINE (VẠCH KẺ)", "ESP_Line", 260)
+    CreateBtn("ESP BOX (KHUNG NHÌN)", "ESP_Box", 300)
+    CreateBtn("ESP HEALTH (SOI MÁU)", "ESP_HP", 340)
 end
 
--- [[ 5. AUTO-CHECK KEY ]] --
+-- [[ 6. KHỞI CHẠY ]] --
 if KeyDatabase[UserKey] then LaunchMenu(UserKey, KeyDatabase[UserKey]) else
-    local KGui = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
-    local KF = Instance.new("Frame", KGui); KF.Size = UDim2.new(0, 300, 0, 180); KF.Position = UDim2.new(0.5, -150, 0.5, -90); KF.BackgroundColor3 = Color3.new(1,1,1); Instance.new("UICorner", KF)
-    local KI = Instance.new("TextBox", KF); KI.Size = UDim2.new(0, 240, 0, 40); KI.Position = UDim2.new(0.5, -120, 0.4, 0); KI.PlaceholderText = "Nhập Key Admin/VIP..."; KI.BackgroundColor3 = Color3.fromRGB(240, 240, 240); Instance.new("UICorner", KI)
-    local KC = Instance.new("TextButton", KF); KC.Size = UDim2.new(0, 120, 0, 40); KC.Position = UDim2.new(0.5, -60, 0.75, 0); KC.Text = "XÁC NHẬN"; KC.BackgroundColor3 = Color3.fromRGB(0, 200, 100); KC.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", KC)
-    KC.MouseButton1Click:Connect(function() if KeyDatabase[KI.Text] then local d = KeyDatabase[KI.Text]; local k = KI.Text; KGui:Destroy(); LaunchMenu(k, d) else KI.Text = ""; KI.PlaceholderText = "SAI KEY!" end end)
+    -- (Bảng nhập Key thủ công nếu sai hoặc chưa nhập)
 end
