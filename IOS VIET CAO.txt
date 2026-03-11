@@ -5,12 +5,13 @@ local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 local Global_Green = Color3.fromRGB(0, 255, 127)
 
+-- FIX LỖI THIẾU DẤU PHẨY TẠI ĐÂY
 local KeyDatabase = {
     ["tudeptrai2013"] = 863913600, -- VIP ADMIN
-    ["tuDepTrai"] = 86400           -- 24 GIỜ
-    ["tuDepTrai0"] = 86400           -- 24 GIỜ
-    ["tuDepTraiok"] = 86400           -- 24 GIỜ
-    ["tuDepTrainhathanhtinh"] = 86400           -- 24 GIỜ
+    ["tuDepTrai"] = 86400,          -- 24 GIỜ
+    ["tuDepTrai0"] = 86400,         -- 24 GIỜ
+    ["tuDepTraiok"] = 86400,        -- 24 GIỜ
+    ["tuDepTrainhathanhtinh"] = 86400 -- 24 GIỜ
 }
 local LinkGetKey = "https://link4m.com/xxxxxx" 
 
@@ -58,7 +59,7 @@ local function CreateESP(plr)
     end)
 end
 
--- [[ 3. LOGIC XỬ LÝ TC (AIMBOT & HITBOX) ]] --
+-- [[ 3. LOGIC XỬ LÝ (AIMBOT & HITBOX) ]] --
 local function GetClosest()
     local target = nil; local dist = _G.Config.FOVSize
     for _, v in pairs(Players:GetPlayers()) do
