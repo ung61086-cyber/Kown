@@ -1,0 +1,70 @@
+-- [[ 1. HỆ THỐNG XÁC THỰC KEY CHUYÊN NGHIỆP ]] --
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local Global_Red = Color3.fromRGB(200, 0, 0)
+local Global_Green = Color3.fromRGB(0, 255, 127)
+
+-- Cơ sở dữ liệu Key (Bạn có thể tự thay đổi)
+local KeyDatabase = {
+    ["FLUORITE_VIP"] = 86400, -- Key 1 ngày
+    ["tudeptrai2013"] = 863913600, -- Admin vĩnh viễn
+}
+
+_G.Config = {
+    Aimbot = false, FOVSize = 100, ShowFOV = false,
+    Hitbox = false, HitboxSize = 25,
+    ESP_Line = false, ESP_Box = false,
+    KillAll = false, AutoHeal = false,
+    Smoothness = 0.05
+}
+
+-- [[ 2. GIAO DIỆN MENU (MÔ PHỎNG VIDEO) ]] --
+local function LaunchMenu()
+    local Screen = Instance.new("ScreenGui", LocalPlayer.PlayerGui); Screen.ResetOnSpawn = false
+    local Main = Instance.new("Frame", Screen); Main.Size = UDim2.new(0, 280, 0, 560); Main.Position = UDim2.new(0.5, -140, 0.5, -280); Main.BackgroundColor3 = Color3.fromRGB(15, 15, 15); Main.Active = true; Main.Draggable = true; Instance.new("UICorner", Main)
+    
+    -- Tiêu đề Menu
+    local Head = Instance.new("Frame", Main); Head.Size = UDim2.new(1, 0, 0, 45); Head.BackgroundColor3 = Global_Red; Instance.new("UICorner", Head)
+    local T = Instance.new("TextLabel", Head); T.Size = UDim2.new(1,0,1,0); T.Text = "FLUORITE MENU VIP"; T.TextColor3 = Color3.new(1,1,1); T.Font = "GothamBold"; T.TextSize = 14; T.BackgroundTransparency = 1
+
+    -- Nút bật/tắt nhanh
+    local M = Instance.new("TextButton", Screen); M.Size = UDim2.new(0, 40, 0, 40); M.Position = UDim2.new(0, 10, 0.5, -20); M.Text = "F"; M.BackgroundColor3 = Global_Red; M.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", M).CornerRadius = UDim.new(1,0)
+    M.MouseButton1Click:Connect(function() Main.Visible = not Main.Visible end)
+
+    local function CreateBtn(name, configKey, y)
+        local b = Instance.new("TextButton", Main); b.Size = UDim2.new(0, 240, 0, 35); b.Position = UDim2.new(0.5, -120, 0, y); b.Text = name; b.BackgroundColor3 = Color3.fromRGB(35, 35, 35); b.TextColor3 = Color3.new(1,1,1); b.Font = "GothamBold"; b.TextSize = 10; Instance.new("UICorner", b)
+        b.MouseButton1Click:Connect(function()
+            _G.Config[configKey] = not _G.Config[configKey]
+            b.TextColor3 = _G.Config[configKey] and Global_Green or Color3.new(1,1,1)
+        end)
+    end
+
+    -- Danh sách tính năng mô phỏng Fluorite FF
+    CreateBtn("AUTO HEADSHOT (AIMBOT)", "Aimbot", 100)
+    CreateBtn("ANTENNA (VẠCH KẺ)", "ESP_Line", 145)
+    CreateBtn("KHUNG NHÌN XUYÊN", "ESP_Box", 190)
+    CreateBtn("QUÉT TOÀN MAP (KILL ALL)", "KillAll", 320)
+    CreateBtn("HỒI MÁU CẤP TỐC", "AutoHeal", 365)
+end
+
+-- [[ 3. HỆ THỐNG NHẬP KEY ]] --
+local function CreateKeySystem()
+    local KeyGui = Instance.new("ScreenGui", LocalPlayer.PlayerGui); KeyGui.ResetOnSpawn = false
+    local Frame = Instance.new("Frame", KeyGui); Frame.Size = UDim2.new(0, 320, 0, 200); Frame.Position = UDim2.new(0.5, -160, 0.5, -100); Frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20); Instance.new("UICorner", Frame)
+    
+    local T = Instance.new("TextLabel", Frame); T.Size = UDim2.new(1, 0, 0, 50); T.Text = "XÁC THỰC KEY FLUORITE"; T.TextColor3 = Global_Red; T.Font = "GothamBold"; T.BackgroundTransparency = 1
+    local Box = Instance.new("TextBox", Frame); Box.Size = UDim2.new(0, 260, 0, 40); Box.Position = UDim2.new(0.5, -130, 0.4, 0); Box.PlaceholderText = "Nhập Key..."; Box.BackgroundColor3 = Color3.fromRGB(40, 40, 40); Box.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", Box)
+    
+    local CheckB = Instance.new("TextButton", Frame); CheckB.Size = UDim2.new(0, 120, 0, 40); CheckB.Position = UDim2.new(0.5, -60, 0.7, 0); CheckB.Text = "ĐĂNG NHẬP"; CheckB.BackgroundColor3 = Global_Red; CheckB.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", CheckB)
+    
+    CheckB.MouseButton1Click:Connect(function()
+        if KeyDatabase[Box.Text] then
+            KeyGui:Destroy()
+            LaunchMenu()
+        else
+            CheckB.Text = "SAI KEY!"; task.wait(1); CheckB.Text = "ĐĂNG NHẬP"
+        end
+    end)
+end
+
+CreateKeySystem()
