@@ -1,0 +1,192 @@
+-- [[ 1. KHỞI TẠO HỆ THỐNG & CẤU HÌNH ]] --
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+local Global_Red = Color3.fromRGB(255, 0, 0)
+local Global_Green = Color3.fromRGB(0, 255, 127)
+
+local KeyDatabase = {
+    ["tudeptrai2013"] = 863913600, -- VIP ADMIN
+    ["tuDepTrai"] = 86400
+}
+
+_G.Config = {
+    Aimbot = false, ShowFOV = false, FOVSize = 120,
+    Smoothness = 0.1, AimPart = "Head",
+    ESP_Box = false, ESP_HP = false, ESP_Line = false,
+    HitboxHead = false,
+    HitboxBody = false,
+    HitboxSize = 20
+}
+
+-- [[ 2. HỆ THỐNG VẼ VÀ AIMBOT ]] --
+local FOVCircle = Drawing.new("Circle")
+FOVCircle.Thickness = 1.5; FOVCircle.Color = Global_Red; FOVCircle.Filled = false
+
+local function GetClosestPlayer()
+    local target = nil
+    local shortestDistance = _G.Config.FOVSize
+    for _, v in pairs(Players:GetPlayers()) do
+        if v ~= LocalPlayer and v.Character and v.Character:FindFirstChild(_G.Config.AimPart) then
+            local Hum = v.Character:FindFirstChild("Humanoid")
+            if Hum and Hum.Health > 0 then
+                local pos, onScreen = Camera:WorldToViewportPoint(v.Character[_G.Config.AimPart].Position)
+                if onScreen then
+                    local dist = (Vector2.new(pos.X, pos.Y) - Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)).Magnitude
+                    if dist < shortestDistance then
+                        target = v; shortestDistance = dist
+                    end
+                end
+            end
+        end
+    end
+    return target
+end
+
+-- [[ 3. HỆ THỐNG ESP & LOGIC HITBOX (CHỐNG KẸT) ]] --
+local function CreateESP(plr)
+    local Lines = {
+        TL1 = Drawing.new("Line"), TL2 = Drawing.new("Line"),
+        TR1 = Drawing.new("Line"), TR2 = Drawing.new("Line"),
+        BL1 = Drawing.new("Line"), BL2 = Drawing.new("Line"),
+        BR1 = Drawing.new("Line"), BR2 = Drawing.new("Line")
+    }
+    local MainLine = Drawing.new("Line")
+    local HealthBarBack = Drawing.new("Line")
+    local HealthBar = Drawing.new("Line")
+    local HealthText = Drawing.new("Text")
+
+    RunService.RenderStepped:Connect(function()
+        -- Cập nhật FOV Circle
+        FOVCircle.Visible = _G.Config.ShowFOV
+        FOVCircle.Radius = _G.Config.FOVSize
+        FOVCircle.Position = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
+
+        -- Logic Aimbot
+        if _G.Config.Aimbot then
+            local t = GetClosestPlayer()
+            if t then
+                Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(Camera.CFrame.Position, t.Character[_G.Config.AimPart].Position), _G.Config.Smoothness)
+            end
+        end
+
+        -- Logic Hitbox & ESP
+        if plr.Character and plr ~= LocalPlayer then
+            local Root = plr.Character:FindFirstChild("HumanoidRootPart")
+            local Head = plr.Character:FindFirstChild("Head")
+            local Hum = plr.Character:FindFirstChild("Humanoid")
+
+            if Root and Head and Hum and Hum.Health > 0 then
+                -- XỬ LÝ HITBOX VÀ CHỐNG KẸT
+                if _G.Config.HitboxHead then
+                    Head.Size = Vector3.new(_G.Config.HitboxSize, _G.Config.HitboxSize, _G.Config.HitboxSize)
+                    Head.Transparency = 0.7; Head.CanCollide = false
+                else
+                    Head.Size = Vector3.new(1.2, 1.2, 1.2); Head.Transparency = 0
+                end
+
+                if _G.Config.HitboxBody then
+                    Root.Size = Vector3.new(_G.Config.HitboxSize, _G.Config.HitboxSize, _G.Config.HitboxSize)
+                    Root.Transparency = 0.8; Root.CanCollide = false
+                else
+                    Root.Size = Vector3.new(2, 2, 1); Root.Transparency = 1
+                end
+
+                -- Ép buộc đi xuyên qua đối thủ nếu đang bật Hitbox
+                if _G.Config.HitboxHead or _G.Config.HitboxBody then
+                    for _, part in pairs(plr.Character:GetChildren()) do
+                        if part:IsA("BasePart") then part.CanCollide = false end
+                    end
+                end
+
+                -- VẼ ESP
+                local Pos, OnScreen = Camera:WorldToViewportPoint(Root.Position)
+                if OnScreen then
+                    local SizeX, SizeY = 2200 / Pos.Z, 3200 / Pos.Z
+                    local X, Y = Pos.X, Pos.Y
+                    local Factor = SizeX * 0.25
+
+                    -- Vẽ Box 4 góc
+                    for _, l in pairs(Lines) do l.Visible = _G.Config.ESP_Box; l.Color = Global_Red; l.Thickness = 1.5 end
+                    if _G.Config.ESP_Box then
+                        Lines.TL1.From = Vector2.new(X - SizeX/2, Y - SizeY/2); Lines.TL1.To = Vector2.new(X - SizeX/2 + Factor, Y - SizeY/2)
+                        Lines.TL2.From = Vector2.new(X - SizeX/2, Y - SizeY/2); Lines.TL2.To = Vector2.new(X - SizeX/2, Y - SizeY/2 + Factor)
+                        Lines.TR1.From = Vector2.new(X + SizeX/2, Y - SizeY/2); Lines.TR1.To = Vector2.new(X + SizeX/2 - Factor, Y - SizeY/2)
+                        Lines.TR2.From = Vector2.new(X + SizeX/2, Y - SizeY/2); Lines.TR2.To = Vector2.new(X + SizeX/2, Y - SizeY/2 + Factor)
+                        Lines.BL1.From = Vector2.new(X - SizeX/2, Y + SizeY/2); Lines.BL1.To = Vector2.new(X - SizeX/2 + Factor, Y + SizeY/2)
+                        Lines.BL2.From = Vector2.new(X - SizeX/2, Y + SizeY/2); Lines.BL2.To = Vector2.new(X - SizeX/2, Y + SizeY/2 - Factor)
+                        Lines.BR1.From = Vector2.new(X + SizeX/2, Y + SizeY/2); Lines.BR1.To = Vector2.new(X + SizeX/2 - Factor, Y + SizeY/2)
+                        Lines.BR2.From = Vector2.new(X + SizeX/2, Y + SizeY/2); Lines.BR2.To = Vector2.new(X + SizeX/2, Y + SizeY/2 - Factor)
+                    end
+
+                    -- Vẽ Máu trái
+                    if _G.Config.ESP_HP then
+                        local BarX = X - SizeX/2 - 6
+                        HealthBarBack.Visible = true; HealthBarBack.From = Vector2.new(BarX, Y + SizeY/2); HealthBarBack.To = Vector2.new(BarX, Y - SizeY/2); HealthBarBack.Color = Color3.new(0,0,0); HealthBarBack.Thickness = 4
+                        local HealthH = (Hum.Health / Hum.MaxHealth) * SizeY
+                        HealthBar.Visible = true; HealthBar.From = Vector2.new(BarX, Y + SizeY/2); HealthBar.To = Vector2.new(BarX, (Y + SizeY/2) - HealthH); HealthBar.Color = Global_Green:Lerp(Global_Red, 1-(Hum.Health/Hum.MaxHealth)); HealthBar.Thickness = 2
+                        HealthText.Visible = true; HealthText.Text = math.floor(Hum.Health); HealthText.Position = Vector2.new(BarX - 15, (Y + SizeY/2) - HealthH - 7); HealthText.Color = Color3.new(1,1,1); HealthText.Outline = true; HealthText.Size = 12
+                    else HealthBarBack.Visible = false; HealthBar.Visible = false; HealthText.Visible = false end
+
+                    MainLine.Visible = _G.Config.ESP_Line; MainLine.From = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y); MainLine.To = Vector2.new(X, Y + SizeY/2); MainLine.Color = Global_Red
+                else
+                    for _, l in pairs(Lines) do l.Visible = false end
+                    MainLine.Visible = false; HealthBarBack.Visible = false; HealthBar.Visible = false; HealthText.Visible = false
+                end
+            else
+                for _, l in pairs(Lines) do l.Visible = false end
+                MainLine.Visible = false; HealthBarBack.Visible = false; HealthBar.Visible = false; HealthText.Visible = false
+            end
+        end
+    end)
+end
+
+-- [[ 4. GIAO DIỆN MENU ]] --
+local function LaunchMenu()
+    local Screen = Instance.new("ScreenGui", LocalPlayer.PlayerGui); Screen.ResetOnSpawn = false
+    local Main = Instance.new("Frame", Screen); Main.Size = UDim2.new(0, 260, 0, 480); Main.Position = UDim2.new(0.5, -130, 0.5, -240); Main.BackgroundColor3 = Color3.fromRGB(15, 15, 15); Main.Draggable = true; Main.Active = true; Instance.new("UICorner", Main)
+    
+    local Head = Instance.new("Frame", Main); Head.Size = UDim2.new(1, 0, 0, 40); Head.BackgroundColor3 = Global_Red; Instance.new("UICorner", Head)
+    local T = Instance.new("TextLabel", Head); T.Size = UDim2.new(1,0,1,0); T.Text = "FLUORITE ULTIMATE v6.0"; T.TextColor3 = Color3.new(1,1,1); T.Font = "GothamBold"; T.TextSize = 13; T.BackgroundTransparency = 1
+
+    local M = Instance.new("TextButton", Screen); M.Size = UDim2.new(0, 40, 0, 40); M.Position = UDim2.new(0, 10, 0.5, -20); M.Text = "F"; M.BackgroundColor3 = Global_Red; M.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", M).CornerRadius = UDim.new(1,0)
+    M.MouseButton1Click:Connect(function() Main.Visible = not Main.Visible end)
+
+    local function CreateBtn(name, conf, y)
+        local b = Instance.new("TextButton", Main); b.Size = UDim2.new(0, 220, 0, 35); b.Position = UDim2.new(0.5, -110, 0, y); b.Text = name; b.BackgroundColor3 = Color3.fromRGB(30, 30, 30); b.TextColor3 = Color3.new(1,1,1); b.Font = "GothamBold"; b.TextSize = 10; Instance.new("UICorner", b)
+        b.MouseButton1Click:Connect(function() _G.Config[conf] = not _G.Config[conf]; b.TextColor3 = _G.Config[conf] and Global_Green or Color3.new(1,1,1) end)
+    end
+
+    CreateBtn("AUTO AIMBOT (HEAD)", "Aimbot", 55)
+    CreateBtn("HIỆN VÒNG FOV", "ShowFOV", 95)
+    CreateBtn("KHUNG 4 GÓC (ESP)", "ESP_Box", 135)
+    CreateBtn("MÁU TAY TRÁI (HP)", "ESP_HP", 175)
+    CreateBtn("VẠCH KẺ (LINE)", "ESP_Line", 215)
+    CreateBtn("HITBOX ĐẦU (HEAD)", "HitboxHead", 265)
+    CreateBtn("HITBOX THÂN (BODY)", "HitboxBody", 305)
+
+    local SZ = Instance.new("TextButton", Main); SZ.Size = UDim2.new(0, 220, 0, 35); SZ.Position = UDim2.new(0.5, -110, 0, 345); SZ.Text = "SIZE HITBOX: ".._G.Config.HitboxSize; SZ.BackgroundColor3 = Color3.fromRGB(45, 45, 45); SZ.TextColor3 = Global_Green; SZ.Font = "GothamBold"; Instance.new("UICorner", SZ)
+    SZ.MouseButton1Click:Connect(function()
+        _G.Config.HitboxSize = (_G.Config.HitboxSize >= 50) and 10 or _G.Config.HitboxSize + 10
+        SZ.Text = "SIZE HITBOX: ".._G.Config.HitboxSize
+    end)
+end
+
+-- [[ 5. HỆ THỐNG KEY ]] --
+local function CreateKeySystem()
+    local KeyGui = Instance.new("ScreenGui", LocalPlayer.PlayerGui); KeyGui.ResetOnSpawn = false
+    local Frame = Instance.new("Frame", KeyGui); Frame.Size = UDim2.new(0, 300, 0, 160); Frame.Position = UDim2.new(0.5, -150, 0.5, -80); Frame.BackgroundColor3 = Color3.fromRGB(20,20,20); Instance.new("UICorner", Frame)
+    local Box = Instance.new("TextBox", Frame); Box.Size = UDim2.new(0, 240, 0, 40); Box.Position = UDim2.new(0.5, -120, 0.3, 0); Box.PlaceholderText = "Key: tudeptrai2013"; Box.BackgroundColor3 = Color3.fromRGB(40,40,40); Box.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", Box)
+    local B = Instance.new("TextButton", Frame); B.Size = UDim2.new(0, 100, 0, 35); B.Position = UDim2.new(0.5, -50, 0.7, 0); B.Text = "LOGIN"; B.BackgroundColor3 = Global_Red; B.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", B)
+    
+    B.MouseButton1Click:Connect(function()
+        if KeyDatabase[Box.Text] then KeyGui:Destroy(); LaunchMenu()
+        else B.Text = "SAI KEY!"; task.wait(1); B.Text = "LOGIN" end
+    end)
+end
+
+-- KHỞI CHẠY
+for _, v in pairs(Players:GetPlayers()) do CreateESP(v) end
+Players.PlayerAdded:Connect(CreateESP)
+CreateKeySystem()
