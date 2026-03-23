@@ -1,0 +1,184 @@
+-- [[ 1. THIẾT LẬP HỆ THỐNG XÁC THỰC & CẤU HÌNH ]] --
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+local Global_Green = Color3.fromRGB(0, 255, 127)
+
+local KeyDatabase = {
+    ["tudeptrai2013"] = 863913600, -- VIP ADMIN
+    ["tuDepTrai"] = 86400,
+    ["tuDepTrai0"] = 86400,
+    ["tuDepTraiok"] = 86400,
+    ["tuDepTrainhathanhtinh"] = 86400
+}
+local LinkGetKey = "https://link4m.com/xxxxxx" 
+
+_G.Config = {
+    Aimbot = false, ShowFOV = false, FOVSize = 100,
+    Hitbox = false, HitboxSize = 20,
+    ESP_Line = false, ESP_Box = false, ESP_HP = false,
+    Smoothness = 0.1,
+    KillAll = false, -- TỰ DIỆT TẤT CẢ
+    AutoHeal = false -- TỰ HỒI MÁU
+}
+
+-- [[ 2. HỆ THỐNG VẼ ESP & VÒNG TRÒN FOV ]] --
+local FOVCircle = Drawing.new("Circle")
+FOVCircle.Thickness = 1.5; FOVCircle.Color = Global_Green; FOVCircle.Filled = false
+
+local function CreateESP(plr)
+    local Line = Drawing.new("Line"); local Box = Drawing.new("Square"); local Health = Drawing.new("Text")
+    RunService.RenderStepped:Connect(function()
+        if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") and plr ~= LocalPlayer then
+            local HRP = plr.Character.HumanoidRootPart
+            local Pos, OnScreen = Camera:WorldToViewportPoint(HRP.Position)
+            if OnScreen then
+                Line.Visible = _G.Config.ESP_Line; Line.From = Vector2.new(Camera.ViewportSize.X / 2, 0); Line.To = Vector2.new(Pos.X, Pos.Y - (3500 / Pos.Z) / 2); Line.Color = Global_Green; Line.Thickness = 1.5
+                if _G.Config.ESP_Box then
+                    local SizeX, SizeY = 2500 / Pos.Z, 3500 / Pos.Z
+                    Box.Visible = true; Box.Size = Vector2.new(SizeX, SizeY); Box.Position = Vector2.new(Pos.X - SizeX / 2, Pos.Y - SizeY / 2); Box.Color = Global_Green; Box.Thickness = 2
+                else Box.Visible = false end
+                Health.Visible = _G.Config.ESP_HP; local hum = plr.Character:FindFirstChild("Humanoid")
+                Health.Text = hum and "HP: " .. math.floor(hum.Health) or "HP: 0"; Health.Position = Vector2.new(Pos.X, Pos.Y + (3500 / Pos.Z) / 2 + 5); Health.Color = Global_Green; Health.Center = true; Health.Outline = true
+            else Line.Visible = false; Box.Visible = false; Health.Visible = false end
+        else Line.Visible = false; Box.Visible = false; Health.Visible = false end
+    end)
+end
+
+-- [[ 3. LOGIC KILL ALL & AUTO HEAL ]] --
+task.spawn(function()
+    while task.wait() do
+        -- KILL ALL LOGIC
+        if _G.Config.KillAll then
+            pcall(function()
+                for _, v in pairs(Players:GetPlayers()) do
+                    if v ~= LocalPlayer and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
+                        local hum = v.Character:FindFirstChild("Humanoid")
+                        if hum and hum.Health > 0 then
+                            local tool = LocalPlayer.Character:FindFirstChildOfClass("Tool") or LocalPlayer.Backpack:FindFirstChildOfClass("Tool")
+                            if tool then
+                                if tool.Parent == LocalPlayer.Backpack then LocalPlayer.Character.Humanoid:EquipTool(tool) end
+                                -- Teleport liên tục và tấn công (Anti-Fall tích hợp)
+                                repeat
+                                    if not _G.Config.KillAll or hum.Health <= 0 then break end
+                                    LocalPlayer.Character.HumanoidRootPart.CFrame = v.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
+                                    LocalPlayer.Character.HumanoidRootPart.Velocity = Vector3.new(0,0,0) -- Khóa trọng lực
+                                    tool:Activate()
+                                    task.wait(0.01)
+                                until hum.Health <= 0 or not _G.Config.KillAll
+                            end
+                        end
+                    end
+                end
+            end)
+        end
+        -- AUTO HEAL LOGIC
+        if _G.Config.AutoHeal and LocalPlayer.Character:FindFirstChild("Humanoid") then
+            if LocalPlayer.Character.Humanoid.Health < (LocalPlayer.Character.Humanoid.MaxHealth * 0.5) then
+                LocalPlayer.Character.HumanoidRootPart.Velocity = Vector3.new(0,0,0) -- Đứng yên hồi máu
+            end
+        end
+    end
+end)
+
+local function GetClosest()
+    local target = nil; local dist = _G.Config.FOVSize
+    for _, v in pairs(Players:GetPlayers()) do
+        if v ~= LocalPlayer and v.Character and v.Character:FindFirstChild("Head") then
+            local pos, vis = Camera:WorldToViewportPoint(v.Character.Head.Position)
+            if vis then
+                local mag = (Vector2.new(pos.X, pos.Y) - Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)).Magnitude
+                if mag < dist then target = v; dist = mag end
+            end
+        end
+    end
+    return target
+end
+
+RunService.RenderStepped:Connect(function()
+    FOVCircle.Visible = _G.Config.ShowFOV; FOVCircle.Radius = _G.Config.FOVSize; FOVCircle.Position = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
+    if _G.Config.Aimbot then
+        local t = GetClosest()
+        if t then Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(Camera.CFrame.Position, t.Character.Head.Position), _G.Config.Smoothness) end
+    end
+    if _G.Config.Hitbox then
+        for _, v in pairs(Players:GetPlayers()) do
+            if v ~= LocalPlayer and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
+                v.Character.HumanoidRootPart.Size = Vector3.new(_G.Config.HitboxSize, _G.Config.HitboxSize, _G.Config.HitboxSize)
+                v.Character.HumanoidRootPart.Transparency = 0.7
+            end
+        end
+    end
+end)
+
+for _, v in pairs(Players:GetPlayers()) do CreateESP(v) end
+Players.PlayerAdded:Connect(CreateESP)
+
+-- [[ 4. GIAO DIỆN MENU CHÍNH ]] --
+local function LaunchMenu(key, dur)
+    local start = os.time()
+    local Screen = Instance.new("ScreenGui", LocalPlayer.PlayerGui); Screen.ResetOnSpawn = false
+    -- Tăng size Y lên 580 để chứa thêm nút Kill All và Auto Heal
+    local Main = Instance.new("Frame", Screen); Main.Size = UDim2.new(0, 280, 0, 580); Main.Position = UDim2.new(0.5, -140, 0.5, -290); Main.BackgroundColor3 = Color3.fromRGB(25, 25, 25); Main.Draggable = true; Main.Active = true; Instance.new("UICorner", Main)
+    
+    local Head = Instance.new("Frame", Main); Head.Size = UDim2.new(1, 0, 0, 45); Head.BackgroundColor3 = Color3.fromRGB(210, 40, 40); Instance.new("UICorner", Head)
+    local Title = Instance.new("TextLabel", Head); Title.Size = UDim2.new(1,0,1,0); Title.Text = "BLOX FRUIT MAX VIP"; Title.TextColor3 = Color3.new(1,1,1); Title.Font = "GothamBold"; Title.BackgroundTransparency = 1
+    
+    local M = Instance.new("TextButton", Screen); M.Size = UDim2.new(0, 45, 0, 45); M.Position = UDim2.new(0, 10, 0.5, -22); M.Text = "M"; M.BackgroundColor3 = Color3.fromRGB(210, 40, 40); M.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", M).CornerRadius = UDim.new(1, 0)
+    M.MouseButton1Click:Connect(function() Main.Visible = not Main.Visible end)
+
+    local L = Instance.new("TextLabel", Main); L.Size = UDim2.new(1, 0, 0, 55); L.Position = UDim2.new(0, 0, 0, 45); L.BackgroundColor3 = Color3.fromRGB(40, 40, 40); L.TextColor3 = Color3.new(1,1,1); L.Font = "GothamBold"; L.TextSize = 10; L.RichText = true
+    task.spawn(function()
+        while task.wait(1) do
+            local rem = dur - (os.time() - start)
+            local st = (key == "tudeptrai2013") and "<font color='#FFD700'>KEY VIP ADMIN</font>" or "HẠN: <font color='#FFFF00'>"..string.format("%02d:%02d:%02d", math.floor(rem/3600), math.floor((rem%3600)/60), rem%60).."</font>"
+            L.Text = "SERVER: ONLINE "..#Players:GetPlayers().."\n"..st
+            if rem <= 0 then Screen:Destroy(); M:Destroy() end
+        end
+    end)
+
+    local function CreateBtn(name, configKey, y)
+        local b = Instance.new("TextButton", Main); b.Size = UDim2.new(0, 240, 0, 32); b.Position = UDim2.new(0.5, -120, 0, y); b.Text = name; b.BackgroundColor3 = Color3.fromRGB(55, 55, 55); b.TextColor3 = Color3.new(1,1,1); b.Font = "GothamBold"; b.TextSize = 11; Instance.new("UICorner", b)
+        b.MouseButton1Click:Connect(function() _G.Config[configKey] = not _G.Config[configKey]; b.TextColor3 = _G.Config[configKey] and Global_Green or Color3.new(1,1,1) end)
+    end
+
+    CreateBtn("AIMBOT THÔNG MINH", "Aimbot", 110)
+    CreateBtn("HIỆN VÒNG TRÒN FOV", "ShowFOV", 150)
+    
+    local FOVB = Instance.new("TextButton", Main); FOVB.Size = UDim2.new(0, 240, 0, 32); FOVB.Position = UDim2.new(0.5, -120, 0, 190); FOVB.Text = "ĐỘ RỘNG FOV: ".._G.Config.FOVSize; FOVB.BackgroundColor3 = Color3.fromRGB(55, 55, 55); FOVB.TextColor3 = Color3.new(1,1,1); FOVB.Font = "GothamBold"; Instance.new("UICorner", FOVB)
+    FOVB.MouseButton1Click:Connect(function() 
+        _G.Config.FOVSize = (_G.Config.FOVSize >= 300) and 50 or _G.Config.FOVSize + 50
+        FOVB.Text = "ĐỘ RỘNG FOV: ".._G.Config.FOVSize 
+    end)
+
+    CreateBtn("HITBOX KHỔNG LỒ", "Hitbox", 230)
+    CreateBtn("ESP LINE (VẠCH KẺ)", "ESP_Line", 270)
+    CreateBtn("ESP BOX (KHUNG VUÔNG)", "ESP_Box", 310)
+    CreateBtn("ESP HEALTH (SOI MÁU)", "ESP_HP", 350)
+    CreateBtn("KILL ALL (TỰ DIỆT HẾT)", "KillAll", 395) -- NÚT MỚI
+    CreateBtn("AUTO HEAL (TỰ HỒI MÁU)", "AutoHeal", 440) -- NÚT MỚI
+end
+
+-- [[ 5. HỆ THỐNG NHẬP KEY ]] --
+local function CreateKeySystem()
+    local KeyGui = Instance.new("ScreenGui", LocalPlayer.PlayerGui); KeyGui.ResetOnSpawn = false
+    local Frame = Instance.new("Frame", KeyGui); Frame.Size = UDim2.new(0, 320, 0, 220); Frame.Position = UDim2.new(0.5, -160, 0.5, -110); Frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30); Instance.new("UICorner", Frame)
+    local T = Instance.new("TextLabel", Frame); T.Size = UDim2.new(1, 0, 0, 50); T.Text = "XÁC THỰC KEY"; T.TextColor3 = Global_Green; T.Font = "GothamBold"; T.BackgroundTransparency = 1
+    local Box = Instance.new("TextBox", Frame); Box.Size = UDim2.new(0, 260, 0, 45); Box.Position = UDim2.new(0.5, -130, 0.35, 0); Box.PlaceholderText = "Nhập Key..."; Box.BackgroundColor3 = Color3.fromRGB(45, 45, 45); Box.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", Box)
+    
+    local GetB = Instance.new("TextButton", Frame); GetB.Size = UDim2.new(0, 125, 0, 40); GetB.Position = UDim2.new(0.5, -130, 0.7, 0); GetB.Text = "LẤY KEY"; GetB.BackgroundColor3 = Color3.fromRGB(200, 50, 50); GetB.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", GetB)
+    GetB.MouseButton1Click:Connect(function() setclipboard(LinkGetKey); GetB.Text = "ĐÃ COPY!" wait(1) GetB.Text = "LẤY KEY" end)
+
+    local CheckB = Instance.new("TextButton", Frame); CheckB.Size = UDim2.new(0, 125, 0, 40); CheckB.Position = UDim2.new(0.5, 5, 0.7, 0); CheckB.Text = "XÁC NHẬN"; CheckB.BackgroundColor3 = Color3.fromRGB(0, 150, 255); CheckB.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", CheckB)
+    CheckB.MouseButton1Click:Connect(function()
+        if KeyDatabase[Box.Text] then
+            local k = Box.Text; KeyGui:Destroy()
+            LaunchMenu(k, KeyDatabase[k])
+        else
+            CheckB.Text = "SAI KEY!"; wait(1); CheckB.Text = "XÁC NHẬN"
+        end
+    end)
+end
+
+CreateKeySystem()
