@@ -1,0 +1,150 @@
+
+-- MACE SWAP V4
+-- LocalScript: StarterPlayer > StarterPlayerScripts
+
+local Players = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
+
+local player = Players.LocalPlayer
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "MaceSwapV4"
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")
+
+local main = Instance.new("Frame")
+main.Size = UDim2.fromOffset(260, 300)
+main.Position = UDim2.new(0.5, -130, 0.4, 0)
+main.BackgroundColor3 = Color3.fromRGB(19, 15, 29)
+main.Active = true
+main.Parent = gui
+
+Instance.new("UICorner", main).CornerRadius =
+    UDim.new(0, 14)
+
+local title = Instance.new("TextButton")
+title.Size = UDim2.new(1, 0, 0, 42)
+title.BackgroundColor3 = Color3.fromRGB(115, 45, 190)
+title.Text = "MACE SWAP V4     [ - ]"
+title.TextColor3 = Color3.new(1,1,1)
+title.TextSize = 18
+title.Parent = main
+
+local function makeButton(name, y, callback)
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(0.86, 0, 0, 38)
+    b.Position = UDim2.new(0.07, 0, 0, y)
+    b.BackgroundColor3 = Color3.fromRGB(70, 40, 105)
+    b.TextColor3 = Color3.new(1,1,1)
+    b.TextSize = 15
+    b.Text = name .. " : OFF"
+    b.Parent = main
+
+    Instance.new("UICorner", b)
+
+    local active = false
+    b.Activated:Connect(function()
+        active = not active
+        b.Text = name .. (active and " : ON" or " : OFF")
+        callback(active)
+    end)
+end
+
+local function equipMace()
+    local character = player.Character
+    local backpack = player:FindFirstChild("Backpack")
+    if not character or not backpack then return end
+
+    local mace = backpack:FindFirstChild("Mace")
+        or character:FindFirstChild("Mace")
+
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+
+    if mace and mace:IsA("Tool") and humanoid then
+        humanoid:EquipTool(mace)
+    end
+end
+
+makeButton("MACE SWAP", 58, function(enabled)
+    if enabled then equipMace() end
+end)
+
+makeButton("AUTO MACE", 105, function(enabled)
+    if enabled then equipMace() end
+end)
+
+makeButton("HITBOX", 152, function(enabled)
+    print("Hitbox:", enabled)
+end)
+
+local label = Instance.new("TextLabel")
+label.Size = UDim2.new(0.9, 0, 0, 25)
+label.Position = UDim2.new(0.05, 0, 0, 205)
+label.BackgroundTransparency = 1
+label.TextColor3 = Color3.new(1,1,1)
+label.Text = "HITBOX SIZE: 5"
+label.Parent = main
+
+local slider = Instance.new("TextBox")
+slider.Size = UDim2.new(0.8, 0, 0, 30)
+slider.Position = UDim2.new(0.1, 0, 0, 235)
+slider.Text = "5"
+slider.Parent = main
+
+slider.FocusLost:Connect(function()
+    local value = tonumber(slider.Text)
+    if value then
+        value = math.clamp(value, 1, 20)
+        slider.Text = tostring(value)
+        label.Text = "HITBOX SIZE: " .. value
+    else
+        slider.Text = "5"
+    end
+end)
+
+local visible = true
+
+title.Activated:Connect(function()
+    visible = not visible
+    for _, v in ipairs(main:GetChildren()) do
+        if v ~= title then
+            v.Visible = visible
+        end
+    end
+end)
+
+-- Kéo GUI trên điện thoại và PC
+local dragging = false
+local dragStart
+local startPos
+
+title.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+    or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = main.Position
+    end
+end)
+
+UIS.InputChanged:Connect(function(input)
+    if dragging and (
+        input.UserInputType == Enum.UserInputType.MouseMovement
+        or input.UserInputType == Enum.UserInputType.Touch
+    ) then
+        local delta = input.Position - dragStart
+        main.Position = UDim2.new(
+            startPos.X.Scale,
+            startPos.X.Offset + delta.X,
+            startPos.Y.Scale,
+            startPos.Y.Offset + delta.Y
+        )
+    end
+end)
+
+UIS.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+    or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = false
+    end
+end)
